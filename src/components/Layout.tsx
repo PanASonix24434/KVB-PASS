@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Shield, Users, FileText, BarChart3, Settings, CreditCard as Edit, Menu, X, Home, Plus, Clock, CheckCircle, XCircle, Search, Megaphone, MessageCircle } from 'lucide-react';
-import { useApplications } from '../contexts/ApplicationContext';
+import { LogOut, User, Shield, Users, FileText, BarChart3, Settings, CreditCard as Edit, Menu, X, Home, Plus, Clock, CheckCircle, Search, Megaphone, MessageCircle } from 'lucide-react';
 import ProfileEditor from './shared/ProfileEditor';
 import SystemMaintenance from './shared/SystemMaintenance';
 import UserManagement from './shared/UserManagement';
@@ -16,7 +15,6 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { stats, createAnnouncement } = useApplications();
   const [showProfileEditor, setShowProfileEditor] = React.useState(false);
   const [showSystemMaintenance, setShowSystemMaintenance] = React.useState(false);
   const [showUserManagement, setShowUserManagement] = React.useState(false);
@@ -48,18 +46,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   // Get unread live chat count for admin
-  const getUnreadLiveChatCount = () => {
+  const getUnreadLiveChatCount = React.useCallback(() => {
     if (user?.role !== 'admin') return 0;
     
     const adminNotifications = JSON.parse(localStorage.getItem('kvpass_admin_chat_notifications') || '{}');
     let unreadCount = 0;
     
-    Object.values(adminNotifications).forEach((count: any) => {
-      unreadCount += count;
+    Object.values(adminNotifications).forEach((count) => {
+      if (typeof count === 'number') {
+        unreadCount += count;
+      }
     });
     
     return unreadCount;
-  };
+  }, [user?.role]);
 
   // Handle navigation clicks
   const handleNavigation = (itemId: string) => {
@@ -78,25 +78,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         setShowUserManagement(true);
         break;
         
-      case 'announcements':
+      case 'announcements': {
         // Scroll to announcement section
         const announcementSection = document.querySelector('[data-section="announcements"]');
         if (announcementSection) {
           announcementSection.scrollIntoView({ behavior: 'smooth' });
         }
         break;
+      }
         
       case 'maintenance':
         setShowSystemMaintenance(true);
         break;
         
-      case 'pending':
+      case 'pending': {
         // Scroll to pending applications section
         const pendingSection = document.querySelector('[data-section="pending"]');
         if (pendingSection) {
           pendingSection.scrollIntoView({ behavior: 'smooth' });
         }
         break;
+      }
         
       case 'all-applications':
         // Show all applications view
@@ -108,21 +110,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         });
         break;
         
-      case 'verification':
+      case 'verification': {
         // Scroll to verification section
         const verificationSection = document.querySelector('[data-section="verification"]');
         if (verificationSection) {
           verificationSection.scrollIntoView({ behavior: 'smooth' });
         }
         break;
+      }
         
-      case 'security-logs':
+      case 'security-logs': {
         // Scroll to security logs section
         const logsSection = document.querySelector('[data-section="security-logs"]');
         if (logsSection) {
           logsSection.scrollIntoView({ behavior: 'smooth' });
         }
         break;
+      }
         
       case 'apply':
         // Student apply for permission
@@ -181,7 +185,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const interval = setInterval(checkLiveChatNotifications, 2000); // Check every 2 seconds
     
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, getUnreadLiveChatCount]);
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
