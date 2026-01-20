@@ -69,6 +69,7 @@ export default function LoginForm() {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
       }}
     >
       {/* Overlay for better readability */}
