@@ -88,14 +88,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      // Query user by IC number
+      // Query user by IC number - ensure column name is correct (snake_case)
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('ic_number', icNumber)
-        .single();
+        .eq('ic_number', icNumber.trim())
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        console.error('Supabase query error:', error);
+        setIsLoading(false);
+        return false;
+      }
+
+      if (!data) {
         setIsLoading(false);
         return false;
       }

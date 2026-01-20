@@ -93,6 +93,7 @@ export default function LoginForm() {
                   errors.userId ? 'border-red-500' : 'border-gray-300'
                 }`}
                 inputMode="numeric"
+                autoComplete="username"
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">12 digit nombor sahaja</p>
@@ -117,6 +118,7 @@ export default function LoginForm() {
                   errors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
                 inputMode="numeric"
+                autoComplete="current-password"
               />
               <button
                 type="button"

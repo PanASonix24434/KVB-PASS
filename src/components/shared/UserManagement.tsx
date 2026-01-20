@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, Users, Plus, Trash2, Eye, EyeOff, UserPlus, AlertCircle, Filter, Search, Phone, Home, User, GraduationCap, Shield } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { User as UserType, StudentProfile } from '../../types';
+import { X, Users, Plus, Trash2, Eye, UserPlus, AlertCircle, Filter, Search, User, GraduationCap, Shield } from 'lucide-react';
 
 interface UserManagementProps {
   onClose: () => void;
@@ -15,67 +17,31 @@ interface NewUser {
   class?: string;
 }
 
+interface UserListItem extends Omit<UserType, 'createdAt'> {
+  createdAt: Date;
+}
+
+interface DatabaseUser {
+  id: string;
+  name: string;
+  ic_number: string;
+  email: string;
+  role: 'student' | 'hep' | 'warden' | 'security' | 'admin';
+  student_id?: string | null;
+  class?: string | null;
+  dormitory_block?: string | null;
+  dormitory_room?: string | null;
+  profile_completed?: boolean | null;
+  profile?: StudentProfile | null;
+  created_at: string;
+}
+
 const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
   const { user } = useAuth();
   
   const [showAddForm, setShowAddForm] = useState(false);
-  const [users, setUsers] = useState(() => {
-    const storedUsers = localStorage.getItem('kvpass_all_users');
-    return storedUsers ? JSON.parse(storedUsers) : [
-      {
-        id: '1',
-        name: 'Pelajar 1',
-        icNumber: '060501110209',
-        email: 'pelajar1@student.kv.edu.my',
-        role: 'student',
-        studentId: 'KV2024001',
-        class: 'Teknologi Maklumat',
-        createdAt: new Date(),
-      },
-      {
-        id: '2',
-        name: 'Pelajar 2',
-        icNumber: '060614110373',
-        email: 'pelajar2@student.kv.edu.my',
-        role: 'student',
-        studentId: 'KV2024002',
-        class: 'Teknologi Elektrik',
-        createdAt: new Date(),
-      },
-      {
-        id: '3',
-        name: 'Tuan Rahimi',
-        icNumber: '012345678910',
-        email: 'rahman@kv.edu.my',
-        role: 'hep',
-        createdAt: new Date(),
-      },
-      {
-        id: '4',
-        name: 'Tuan Shah',
-        icNumber: '012345678911',
-        email: 'fatimah@kv.edu.my',
-        role: 'warden',
-        createdAt: new Date(),
-      },
-      {
-        id: '5',
-        name: 'Pengawal Keselamatan',
-        icNumber: '012345678912',
-        email: 'azman@kv.edu.my',
-        role: 'security',
-        createdAt: new Date(),
-      },
-      {
-        id: '6',
-        name: 'Encik Muhammad Ihsan',
-        icNumber: '061221110051',
-        email: 'admin@kv.edu.my',
-        role: 'admin',
-        createdAt: new Date(),
-      },
-    ];
-  });
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
 
   const [newUser, setNewUser] = useState<NewUser>({
     name: '',
@@ -100,6 +66,50 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
   const [selectedStudentView, setSelectedStudentView] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Load users from Supabase on mount
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading users:', error);
+          setError('Ralat semasa memuatkan senarai pengguna');
+          return;
+        }
+
+        if (data) {
+          // Map database users to app format
+          const mappedUsers = data.map((dbUser: DatabaseUser) => ({
+            id: dbUser.id,
+            name: dbUser.name,
+            icNumber: dbUser.ic_number,
+            email: dbUser.email,
+            role: dbUser.role,
+            studentId: dbUser.student_id || undefined,
+            class: dbUser.class || undefined,
+            dormitoryBlock: dbUser.dormitory_block || undefined,
+            dormitoryRoom: dbUser.dormitory_room || undefined,
+            profileCompleted: dbUser.profile_completed || false,
+            profile: dbUser.profile || undefined,
+            createdAt: new Date(dbUser.created_at),
+          }));
+          setUsers(mappedUsers);
+        }
+      } catch (error) {
+        console.error('Error loading users:', error);
+        setError('Ralat semasa memuatkan senarai pengguna');
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    loadUsers();
+  }, []);
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -112,7 +122,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     }
 
     // Check if IC number already exists
-    if (users.some((u: any) => u.icNumber === newUser.icNumber)) {
+    if (users.some((u) => u.icNumber === newUser.icNumber)) {
       setError('ID Pengguna ini sudah wujud dalam sistem');
       return;
     }
@@ -120,55 +130,132 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     // Generate student ID for students
     let studentId = '';
     if (newUser.role === 'student') {
-      const studentCount = users.filter((u: any) => u.role === 'student').length;
-      studentId = `KV2024${String(studentCount + 3).padStart(3, '0')}`;
+      const studentCount = users.filter((u) => u.role === 'student').length;
+      studentId = `KV2024${String(studentCount + 1).padStart(3, '0')}`;
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Check if IC number already exists in database
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('ic_number')
+        .eq('ic_number', newUser.icNumber.trim())
+        .maybeSingle();
 
-    const userToAdd = {
-      id: Date.now().toString(),
-      ...newUser,
-      studentId: newUser.role === 'student' ? studentId : undefined,
-      profileCompleted: false,
-      createdAt: new Date(),
-    };
+      if (existingUser) {
+        setError('ID Pengguna ini sudah wujud dalam sistem');
+        setIsSubmitting(false);
+        return;
+      }
 
-    const updatedUsers = [...users, userToAdd];
-    setUsers(updatedUsers);
-    localStorage.setItem('kvpass_all_users', JSON.stringify(updatedUsers));
+      // Prepare data for Supabase (snake_case)
+      const dbData = {
+        name: newUser.name.trim(),
+        ic_number: newUser.icNumber.trim(),
+        email: newUser.email.trim(),
+        role: newUser.role,
+        student_id: newUser.role === 'student' ? studentId : null,
+        class: newUser.class?.trim() || null,
+        dormitory_block: null,
+        dormitory_room: null,
+        profile_completed: false,
+        profile: null,
+        password_hash: '123456', // Default password - should be hashed in production
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-    setSuccess(`Pengguna ${newUser.name} berjaya ditambah ke sistem`);
-    setNewUser({
-      name: '',
-      icNumber: '',
-      role: 'student',
-      email: '',
-      studentId: '',
-      class: '',
-    });
-    setIsSubmitting(false);
-    setShowAddForm(false);
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('users')
+        .insert(dbData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding user:', error);
+        setError('Ralat semasa menambah pengguna. Sila cuba lagi.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data) {
+        // Map database user to app format
+        const mappedUser = {
+          id: data.id,
+          name: data.name,
+          icNumber: data.ic_number,
+          email: data.email,
+          role: data.role,
+          studentId: data.student_id || undefined,
+          class: data.class || undefined,
+          dormitoryBlock: data.dormitory_block || undefined,
+          dormitoryRoom: data.dormitory_room || undefined,
+          profileCompleted: data.profile_completed || false,
+          profile: data.profile || undefined,
+          createdAt: new Date(data.created_at),
+        };
+
+        // Update local state
+        setUsers(prev => [mappedUser, ...prev]);
+        setSuccess(`Pengguna ${newUser.name} berjaya ditambah ke sistem`);
+        
+        // Reset form
+        setNewUser({
+          name: '',
+          icNumber: '',
+          role: 'student',
+          email: '',
+          studentId: '',
+          class: '',
+        });
+        setShowAddForm(false);
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+      setError('Ralat semasa menambah pengguna. Sila cuba lagi.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (userId === user?.id) {
       setError('Anda tidak boleh memadam akaun anda sendiri');
+      setDeleteConfirm(null);
       return;
     }
 
-    const updatedUsers = users.filter((u: any) => u.id !== userId);
-    setUsers(updatedUsers);
-    localStorage.setItem('kvpass_all_users', JSON.stringify(updatedUsers));
-    setSuccess('Pengguna berjaya dipadam');
-    setDeleteConfirm(null);
+    try {
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error deleting user:', error);
+        setError('Ralat semasa memadam pengguna. Sila cuba lagi.');
+        setDeleteConfirm(null);
+        return;
+      }
+
+      // Update local state
+      const updatedUsers = users.filter((u) => u.id !== userId);
+      setUsers(updatedUsers);
+      setSuccess('Pengguna berjaya dipadam');
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setError('Ralat semasa memadam pengguna. Sila cuba lagi.');
+      setDeleteConfirm(null);
+    }
   };
 
   // Filter users based on selected filters
-  const filteredUsers = users.filter((userData: any) => {
+  const filteredUsers = users.filter((userData) => {
     // Search term filter
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
@@ -422,7 +509,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     </label>
                     <select
                       value={newUser.role}
-                      onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as any }))}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as 'student' | 'hep' | 'warden' | 'security' }))}
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -458,7 +545,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                         <li>Pengguna boleh menukar kata laluan selepas log masuk pertama</li>
                         <li>Pelajar perlu melengkapkan profil sebelum menggunakan sistem</li>
                         {newUser.role === 'student' && (
-                          <li>No. Pelajar akan dijana secara automatik: <strong>KV2024{String(users.filter((u: any) => u.role === 'student').length + 3).padStart(3, '0')}</strong></li>
+                          <li>No. Pelajar akan dijana secara automatik: <strong>KV2024{String(users.filter((u) => u.role === 'student').length + 1).padStart(3, '0')}</strong></li>
                         )}
                       </ul>
                     </div>
@@ -494,13 +581,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
             </div>
 
             <div className="divide-y divide-gray-100">
-              {filteredUsers.length === 0 ? (
+              {isLoadingUsers ? (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-500 mt-4">Memuatkan senarai pengguna...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="p-8 text-center">
                   <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">Tiada pengguna dijumpai mengikut kriteria carian</p>
                 </div>
               ) : (
-                filteredUsers.map((userData: any) => (
+                filteredUsers.map((userData) => (
                 <div key={userData.id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -674,7 +766,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
             {/* Student Details Content */}
             <div className="p-6">
               {(() => {
-                const student = users.find((u: any) => u.id === selectedStudentView);
+                const student = users.find((u) => u.id === selectedStudentView);
                 if (!student) return <p>Pelajar tidak dijumpai</p>;
 
                 return (
