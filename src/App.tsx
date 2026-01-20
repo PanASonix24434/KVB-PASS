@@ -10,6 +10,7 @@ import SecurityDashboard from './components/security/SecurityDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { useDarkMode } from './hooks/useDarkMode';
 import { hasSupabaseConfig, missingSupabaseVars } from './lib/supabase';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -58,10 +59,10 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-theme-secondary flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-theme-secondary">Sedang memuatkan...</p>
+          <p className="text-gray-600">Sedang memuatkan...</p>
         </div>
       </div>
     );
@@ -71,23 +72,66 @@ const AppContent: React.FC = () => {
     return <LoginForm />;
   }
 
+  // Safety check: ensure user has required properties
+  if (!user.id || !user.role) {
+    console.error('Invalid user object:', user);
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="text-red-600 text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Ralat Data Pengguna</h1>
+          <p className="text-gray-700 mb-6">Data pengguna tidak lengkap. Sila log masuk semula.</p>
+          <button
+            onClick={() => {
+              localStorage.removeItem('kvpass_user');
+              window.location.reload();
+            }}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Log Masuk Semula
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (showProfileCompletion) {
     return <ProfileCompletion onComplete={() => setShowProfileCompletion(false)} />;
   }
 
   const renderDashboard = () => {
-    switch (user.role) {
-      case 'student':
-        return <StudentDashboard />;
-      case 'hep':
-      case 'warden':
-        return <StaffDashboard />;
-      case 'security':
-        return <SecurityDashboard />;
-      case 'admin':
-        return <AdminDashboard />;
-      default:
-        return <div>Role tidak dikenali</div>;
+    try {
+      console.log('Rendering dashboard for role:', user.role, 'User:', user);
+      switch (user.role) {
+        case 'student':
+          return <StudentDashboard />;
+        case 'hep':
+        case 'warden':
+          return <StaffDashboard />;
+        case 'security':
+          return <SecurityDashboard />;
+        case 'admin':
+          return <AdminDashboard />;
+        default:
+          console.warn('Unknown user role:', user.role);
+          return (
+            <div className="p-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800">Role tidak dikenali: {user.role}</p>
+              </div>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error('Error rendering dashboard:', error);
+      return (
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">Ralat semasa memuatkan dashboard. Sila muat semula halaman.</p>
+            <p className="text-red-600 text-sm mt-2">Error: {error instanceof Error ? error.message : String(error)}</p>
+          </div>
+        </div>
+      );
     }
   };
 
@@ -100,11 +144,13 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <ApplicationProvider>
-        <AppContent />
-      </ApplicationProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ApplicationProvider>
+          <AppContent />
+        </ApplicationProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

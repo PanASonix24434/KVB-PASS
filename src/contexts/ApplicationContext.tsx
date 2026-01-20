@@ -96,53 +96,84 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const loadData = async () => {
       try {
         // Load applications
-        const { data: appsData, error: appsError } = await supabase
-          .from('applications')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (!appsError && appsData) {
-          setApplications(appsData.map(mapDbApplicationToApplication));
+        try {
+          const { data: appsData, error: appsError } = await supabase
+            .from('applications')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (appsError) {
+            console.error('Error loading applications:', appsError);
+          } else if (appsData) {
+            try {
+              setApplications(appsData.map(mapDbApplicationToApplication));
+            } catch (mapError) {
+              console.error('Error mapping applications:', mapError);
+            }
+          }
+        } catch (appsErr) {
+          console.error('Error fetching applications:', appsErr);
         }
         
         // Load security logs
-        const { data: logsData, error: logsError } = await supabase
-          .from('security_logs')
-          .select('*')
-          .order('timestamp', { ascending: false });
-        
-        if (!logsError && logsData) {
-          setSecurityLogs(logsData.map(log => ({
-            id: log.id,
-            studentId: log.student_id,
-            studentName: log.student_name,
-            action: log.action,
-            timestamp: new Date(log.timestamp),
-            securityOfficer: log.security_officer,
-            applicationId: log.application_id,
-          })));
+        try {
+          const { data: logsData, error: logsError } = await supabase
+            .from('security_logs')
+            .select('*')
+            .order('timestamp', { ascending: false });
+          
+          if (logsError) {
+            console.error('Error loading security logs:', logsError);
+          } else if (logsData) {
+            try {
+              setSecurityLogs(logsData.map(log => ({
+                id: log.id,
+                studentId: log.student_id,
+                studentName: log.student_name,
+                action: log.action,
+                timestamp: new Date(log.timestamp),
+                securityOfficer: log.security_officer,
+                applicationId: log.application_id,
+              })));
+            } catch (mapError) {
+              console.error('Error mapping security logs:', mapError);
+            }
+          }
+        } catch (logsErr) {
+          console.error('Error fetching security logs:', logsErr);
         }
         
         // Load announcements
-        const { data: annData, error: annError } = await supabase
-          .from('announcements')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (!annError && annData) {
-          setAnnouncements(annData.map(ann => ({
-            id: ann.id,
-            title: ann.title,
-            content: ann.content,
-            type: ann.type,
-            createdBy: ann.created_by,
-            creatorRole: ann.creator_role,
-            createdAt: new Date(ann.created_at),
-            isActive: ann.is_active,
-          })));
+        try {
+          const { data: annData, error: annError } = await supabase
+            .from('announcements')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (annError) {
+            console.error('Error loading announcements:', annError);
+          } else if (annData) {
+            try {
+              setAnnouncements(annData.map(ann => ({
+                id: ann.id,
+                title: ann.title,
+                content: ann.content,
+                type: ann.type,
+                createdBy: ann.created_by,
+                creatorRole: ann.creator_role,
+                createdAt: new Date(ann.created_at),
+                isActive: ann.is_active,
+              })));
+            } catch (mapError) {
+              console.error('Error mapping announcements:', mapError);
+            }
+          }
+        } catch (annErr) {
+          console.error('Error fetching announcements:', annErr);
         }
       } catch (error) {
         console.error('Error loading data:', error);
+        // Don't throw - allow app to continue with empty data
       }
     };
     
@@ -404,7 +435,15 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const getApplicationsByStudent = (studentId: string) => {
-    return applications.filter(app => app.studentId === studentId);
+    if (!studentId) {
+      return [];
+    }
+    try {
+      return applications.filter(app => app.studentId === studentId);
+    } catch (error) {
+      console.error('Error filtering applications by student:', error);
+      return [];
+    }
   };
 
   const getPendingApplications = () => {
