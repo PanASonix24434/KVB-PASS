@@ -13,6 +13,8 @@ const StaffDashboard: React.FC = () => {
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
+  const currentHour = new Date().getHours();
+  const isWorkingHours = currentHour >= 8 && currentHour < 17;
 
   // Warden-specific filters
   const [filters, setFilters] = useState({
