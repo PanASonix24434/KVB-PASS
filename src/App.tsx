@@ -2,7 +2,7 @@ import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ApplicationProvider } from './contexts/ApplicationContext';
 import Layout from './components/Layout';
-import LoginForm from './components/LoginForm';
+import LandingPage from './components/LandingPage';
 import ProfileCompletion from './components/student/ProfileCompletion';
 import StudentDashboard from './components/student/StudentDashboard';
 import StaffDashboard from './components/staff/StaffDashboard';
@@ -69,7 +69,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <LoginForm />;
+    return <LandingPage />;
   }
 
   // Safety check: ensure user has required properties

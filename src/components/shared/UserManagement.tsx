@@ -11,7 +11,7 @@ interface UserManagementProps {
 interface NewUser {
   name: string;
   icNumber: string;
-  role: 'student' | 'hep' | 'warden' | 'security';
+  role: 'hep' | 'warden' | 'security' | '';
   email: string;
   studentId?: string;
   class?: string;
@@ -46,7 +46,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
   const [newUser, setNewUser] = useState<NewUser>({
     name: '',
     icNumber: '',
-    role: 'student',
+    role: '',
     email: '',
     studentId: '',
     class: '',
@@ -127,11 +127,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
       return;
     }
 
-    // Generate student ID for students
-    let studentId = '';
+    // Admin cannot create student accounts - students register themselves
     if (newUser.role === 'student') {
-      const studentCount = users.filter((u) => u.role === 'student').length;
-      studentId = `KV2024${String(studentCount + 1).padStart(3, '0')}`;
+      setError('Admin tidak boleh mendaftarkan pelajar. Pelajar perlu mendaftar sendiri melalui butang "Buat Permohonan" di halaman utama.');
+      setIsSubmitting(false);
+      return;
     }
 
     setIsSubmitting(true);
@@ -156,7 +156,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         ic_number: newUser.icNumber.trim(),
         email: newUser.email.trim(),
         role: newUser.role,
-        student_id: newUser.role === 'student' ? studentId : null,
+        student_id: null,
         class: newUser.class?.trim() || null,
         dormitory_block: null,
         dormitory_room: null,
@@ -509,15 +509,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     </label>
                     <select
                       value={newUser.role}
-                      onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as 'student' | 'hep' | 'warden' | 'security' }))}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as 'hep' | 'warden' | 'security' }))}
                       required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="student">Pelajar</option>
-                      <option value="hep">Ketua Hal Ehwal Pelajar</option>
-                      <option value="warden">Ketua Warden Asrama</option>
+                      <option value="">Pilih Kategori</option>
+                      <option value="hep">Ketua Hal Ehwal Pelajar (KHP)</option>
+                      <option value="warden">Warden Asrama</option>
                       <option value="security">Pengawal Keselamatan</option>
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Nota: Pelajar perlu mendaftar sendiri melalui butang "Buat Permohonan" di halaman utama
+                    </p>
                   </div>
 
                   <div>
@@ -543,10 +546,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                       <ul className="list-disc list-inside space-y-1">
                         <li>Kata laluan awal untuk semua pengguna baru ialah: <strong>123456</strong></li>
                         <li>Pengguna boleh menukar kata laluan selepas log masuk pertama</li>
-                        <li>Pelajar perlu melengkapkan profil sebelum menggunakan sistem</li>
-                        {newUser.role === 'student' && (
-                          <li>No. Pelajar akan dijana secara automatik: <strong>KV2024{String(users.filter((u) => u.role === 'student').length + 1).padStart(3, '0')}</strong></li>
-                        )}
+                        <li>Admin hanya boleh menambah akaun KHP, Warden Asrama, dan Pengawal Keselamatan</li>
+                        <li>Pelajar perlu mendaftar sendiri melalui butang "Buat Permohonan" di halaman utama</li>
                       </ul>
                     </div>
                   </div>

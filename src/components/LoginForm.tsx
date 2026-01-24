@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { User, Lock, Eye, EyeOff, MessageCircle } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ForgotPasswordModal from './auth/ForgotPasswordModal';
 import LoginSupportChat from './auth/LoginSupportChat';
 
-export default function LoginForm() {
+interface LoginFormProps {
+  onBack?: () => void;
+}
+
+export default function LoginForm({ onBack }: LoginFormProps) {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -76,6 +80,17 @@ export default function LoginForm() {
       <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative z-10">
+        {/* Back Button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="mb-4 inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Kembali ke Halaman Utama</span>
+          </button>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8">
           <img 
