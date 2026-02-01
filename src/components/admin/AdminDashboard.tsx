@@ -2,7 +2,6 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { BarChart3, Users, FileText, Shield, Clock, CheckCircle, XCircle, TrendingUp, Megaphone, UserPlus, MessageCircle } from 'lucide-react';
-import AnnouncementBanner from '../shared/AnnouncementBanner';
 import AnnouncementManager from '../shared/AnnouncementManager';
 import UserManagement from '../shared/UserManagement';
 import LiveChatWidget from '../shared/LiveChatWidget';
@@ -61,9 +60,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ handleNavigation }) => 
 
   return (
     <div className="space-y-6">
-      {/* Announcements */}
-      <AnnouncementBanner />
-
       {/* Welcome Section */}
       <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-center justify-between">

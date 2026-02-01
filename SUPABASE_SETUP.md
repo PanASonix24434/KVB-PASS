@@ -51,34 +51,30 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow users to read their own data
-CREATE POLICY "Users can read own data" ON users
-  FOR SELECT
-  USING (auth.uid()::text = id::text);
-
--- Create policy to allow authenticated users to read all users (adjust based on your needs)
-CREATE POLICY "Authenticated users can read all users" ON users
-  FOR SELECT
-  TO authenticated
-  USING (true);
+-- KVB-PASS uses custom auth (not Supabase Auth) with anon key
+-- Allow full access for anon - app handles auth logic
+DROP POLICY IF EXISTS "Users can read own data" ON users;
+DROP POLICY IF EXISTS "Authenticated users can read all users" ON users;
+CREATE POLICY "Allow all for anon" ON users FOR ALL TO anon USING (true) WITH CHECK (true);
 ```
 
 ## Step 4: Insert Initial Users (Optional)
 
-You can insert the mock users from your code into the database:
+Add staff/admin users via the app's User Management, or run this SQL.
+**Note:** Passwords are now hashed. Use "Lupa Kata Laluan" to set password after first login, or insert with a pre-hashed password.
 
 ```sql
--- Note: You'll need to hash passwords before inserting
--- For now, you can use a simple approach or implement proper password hashing
-INSERT INTO users (name, ic_number, email, role, student_id, class, dormitory_block, dormitory_room, profile_completed)
+-- Default password for these users: 123456 (use Lupa Kata Laluan to reset)
+-- Password hashes are SHA-256(password + ic_number)
+INSERT INTO users (name, ic_number, email, role, student_id, class, dormitory_block, dormitory_room, profile_completed, password_hash)
 VALUES
-  ('Pelajar 1', '060501110209', 'pelajar1@student.kv.edu.my', 'student', 'KV2024001', 'Teknologi Maklumat', 'U', 'U1', false),
-  ('Pelajar 2', '060614110373', 'pelajar2@student.kv.edu.my', 'student', 'KV2024002', 'Teknologi Elektrik', 'T', 'T3', false),
-  ('Tuan Rahimi', '012345678910', 'rahman@kv.edu.my', 'hep', NULL, NULL, NULL, NULL, false),
-  ('Tuan Shah', '012345678911', 'fatimah@kv.edu.my', 'warden', NULL, NULL, NULL, NULL, false),
-  ('Pengawal Keselamatan', '012345678912', 'azman@kv.edu.my', 'security', NULL, NULL, NULL, NULL, false),
-  ('Encik Muhammad Ihsan', '061221110051', 'admin@kv.edu.my', 'admin', NULL, NULL, NULL, NULL, false);
+  ('Tuan Rahimi', '012345678910', 'rahman@kv.edu.my', 'hep', NULL, NULL, NULL, NULL, false, 'placeholder'),
+  ('Tuan Shah', '012345678911', 'fatimah@kv.edu.my', 'warden', NULL, NULL, NULL, NULL, false, 'placeholder'),
+  ('Pengawal Keselamatan', '012345678912', 'azman@kv.edu.my', 'security', NULL, NULL, NULL, NULL, false, 'placeholder'),
+  ('Encik Muhammad Ihsan', '061221110051', 'admin@kv.edu.my', 'admin', NULL, NULL, NULL, NULL, false, 'placeholder');
 ```
+
+After inserting, use **Lupa Kata Laluan** on the login page to set a password for each user.
 
 ## Step 5: Restart Your Development Server
 
@@ -92,5 +88,5 @@ npm run dev
 
 - The `.env` file is already in `.gitignore`, so your credentials won't be committed to version control
 - Make sure to use environment variables in production as well
-- Consider implementing proper password hashing (bcrypt, argon2, etc.) instead of storing plain text passwords
+- The app uses SHA-256 hashing for passwords (see src/lib/authUtils.ts)
 - Adjust Row Level Security policies based on your application's security requirements

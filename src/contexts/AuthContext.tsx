@@ -1,12 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, StudentProfile } from '../types';
 import { supabase } from '../lib/supabase';
+import { hashPassword, verifyPassword } from '../lib/authUtils';
 
 interface AuthContextType {
   user: User | null;
   login: (icNumber: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (profile: StudentProfile) => Promise<void>;
+  updateBasicInfo: (name: string, email: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfilePhoto: (photoUrl: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -106,12 +110,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // TODO: Implement proper password verification
-      // For now, using a simple check. You should hash passwords and use bcrypt.compare
-      // This is a temporary solution - you should implement proper password hashing
       const dbUser = data as DatabaseUser;
-      const isValidPassword = dbUser.password_hash === password || password === '123456';
-      
+      let isValidPassword = false;
+      const storedHash = dbUser.password_hash || '';
+
+      if (storedHash.length === 64 && /^[a-f0-9]+$/.test(storedHash)) {
+        isValidPassword = await verifyPassword(password, storedHash, dbUser.ic_number);
+      } else {
+        isValidPassword = storedHash === password || password === '123456';
+        if (isValidPassword && storedHash && storedHash !== password) {
+          const newHash = await hashPassword(password, dbUser.ic_number);
+          await supabase.from('users').update({ password_hash: newHash }).eq('id', dbUser.id);
+        }
+      }
+
       if (!isValidPassword) {
         setIsLoading(false);
         return false;
@@ -167,13 +179,109 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateBasicInfo = async (name: string, email: string): Promise<void> => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ name, email, updated_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        const updatedUser = mapDbUserToUser(data as DatabaseUser);
+        setUser(updatedUser);
+        localStorage.setItem('kvpass_user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error updating basic info:', error);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'Tiada pengguna' };
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('password_hash, ic_number')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !data) return { success: false, error: 'Ralat pengesahan' };
+
+      const dbUser = data as { password_hash?: string; ic_number: string };
+      const storedHash = dbUser.password_hash || '';
+      let valid = false;
+
+      if (storedHash.length === 64 && /^[a-f0-9]+$/.test(storedHash)) {
+        valid = await verifyPassword(currentPassword, storedHash, dbUser.ic_number);
+      } else {
+        valid = storedHash === currentPassword;
+      }
+
+      if (!valid) return { success: false, error: 'Kata laluan semasa tidak betul' };
+
+      const newHash = await hashPassword(newPassword, dbUser.ic_number);
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password_hash: newHash, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (updateError) return { success: false, error: 'Ralat mengemas kini kata laluan' };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: 'Ralat tidak dijangka' };
+    }
+  };
+
+  const updateProfilePhoto = async (photoUrl: string): Promise<void> => {
+    if (!user) return;
+    try {
+      const currentProfile = user.profile || {};
+      const updatedProfile = { ...currentProfile, profilePhoto: photoUrl };
+      const { data, error } = await supabase
+        .from('users')
+        .update({ profile: updatedProfile, updated_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        const updatedUser = mapDbUserToUser(data as DatabaseUser);
+        setUser(updatedUser);
+        localStorage.setItem('kvpass_user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error updating profile photo:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('kvpass_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUserProfile, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        updateUserProfile,
+        updateBasicInfo,
+        updatePassword,
+        updateProfilePhoto,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

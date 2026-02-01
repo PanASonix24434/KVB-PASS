@@ -42,9 +42,6 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ applicationId, on
 
     setIsSubmitting(true);
 
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     if (decision === 'approve') {
       approveApplication(applicationId, user?.role as 'hep' | 'warden', user?.name || '', comments);
     } else {
@@ -205,7 +202,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ applicationId, on
             <h2 className="text-lg font-medium text-gray-900 mb-4">Maklumat Permohonan</h2>
             <div className="space-y-2 text-sm">
               <p><span className="font-medium">Tarikh Permohonan:</span> {new Date(application.createdAt).toLocaleString('ms-MY')}</p>
-              <p><span className="font-medium">Status:</span> <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Menunggu Kelulusan</span></p>
+              <p><span className="font-medium">Status:</span> <span className={`px-2 py-1 rounded-full text-xs ${
+                application.status === 'approved' ? 'bg-green-100 text-green-800' :
+                application.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {application.status === 'approved' ? 'Diluluskan' : application.status === 'rejected' ? 'Ditolak' : 'Menunggu Kelulusan'}
+              </span></p>
+              {application.status !== 'pending' && application.approvedBy && (
+                <p><span className="font-medium">Disahkan oleh:</span> {application.approvedBy}</p>
+              )}
+              {application.status === 'rejected' && application.comments && (
+                <p><span className="font-medium">Sebab penolakan:</span> {application.comments}</p>
+              )}
               {application.routedTo && application.routingReason && (
                 <>
                   <p><span className="font-medium">Dihantar kepada:</span> {application.routedTo === 'hep' ? 'Ketua HEP' : 'Warden Asrama'}</p>
@@ -215,7 +224,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ applicationId, on
             </div>
           </div>
 
-          {/* Decision Form */}
+          {/* Decision Form - only show for pending applications */}
+          {application.status === 'pending' && (
           <form onSubmit={handleSubmit} className="space-y-6 border-t border-gray-100 pt-8">
             <h2 className="text-lg font-medium text-gray-900">Keputusan</h2>
             
@@ -306,6 +316,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ applicationId, on
               </button>
             </div>
           </form>
+          )}
+          {application.status !== 'pending' && (
+            <div className="border-t border-gray-100 pt-8">
+              <button
+                onClick={onBack}
+                className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Kembali</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

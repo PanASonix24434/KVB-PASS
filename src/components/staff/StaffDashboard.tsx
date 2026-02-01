@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { FileText, Clock, CheckCircle, XCircle, Eye, MessageSquare, Megaphone, Filter, Search, Building, Users, MessageCircle } from 'lucide-react';
 import ApplicationReview from './ApplicationReview';
-import AnnouncementBanner from '../shared/AnnouncementBanner';
 import AnnouncementForm from '../shared/AnnouncementForm';
 import LiveChatWidget from '../shared/LiveChatWidget';
 
-const StaffDashboard: React.FC = () => {
+interface StaffDashboardProps {
+  navigationAction?: string | null;
+}
+
+const StaffDashboard: React.FC<StaffDashboardProps> = ({ navigationAction }) => {
   const { user } = useAuth();
-  const { getPendingApplications, stats } = useApplications();
+  const { getPendingApplications, applications, stats } = useApplications();
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
@@ -26,7 +29,18 @@ const StaffDashboard: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const pendingApplications = getPendingApplications();
-  
+  const [allAppsStatusFilter, setAllAppsStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  // Handle navigation to all-applications section
+  useEffect(() => {
+    if (navigationAction === 'all-applications') {
+      setTimeout(() => {
+        const section = document.querySelector('[data-section="all-applications"]');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [navigationAction]);
+
   // Filter applications based on routing rules
   const relevantApplications = pendingApplications.filter(app => {
     // Show applications routed to current user's role
@@ -103,11 +117,8 @@ const StaffDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Announcements */}
-      <AnnouncementBanner />
-
       {/* Welcome Section */}
-      <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4" data-section="announcements">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 scroll-container">
             <div>
@@ -148,26 +159,29 @@ const StaffDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Announcements Card */}
+        {/* Pengumuman Card - scroll to pengumuman section */}
         <div 
           className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => setShowAnnouncementForm(true)}
+          onClick={() => document.querySelector('[data-section="announcements"]')?.scrollIntoView({ behavior: 'smooth' })}
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-lg font-medium mb-1">
-                Click To View
+                Lihat Pengumuman
               </div>
               <div className="text-purple-100">
-                Buat Pengumuman
+                Pengumuman & notis terkini
               </div>
             </div>
             <Megaphone className="w-12 h-12 text-purple-200" />
           </div>
         </div>
 
-        {/* Reports Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+        {/* Reports Card - scroll to Semua Permohonan */}
+        <div 
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => document.querySelector('[data-section="all-applications"]')?.scrollIntoView({ behavior: 'smooth' })}
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-lg font-medium mb-1">
@@ -401,6 +415,91 @@ const StaffDashboard: React.FC = () => {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Semua Permohonan - All Applications */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm" data-section="all-applications">
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Semua Permohonan ({applications.filter(a => allAppsStatusFilter === 'all' || a.status === allAppsStatusFilter).length})
+            </h2>
+            <select
+              value={allAppsStatusFilter}
+              onChange={(e) => setAllAppsStatusFilter(e.target.value as typeof allAppsStatusFilter)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option value="all">Semua Status</option>
+              <option value="pending">Dalam Proses</option>
+              <option value="approved">Diluluskan</option>
+              <option value="rejected">Ditolak</option>
+            </select>
+          </div>
+        </div>
+        <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+          {applications
+            .filter(a => allAppsStatusFilter === 'all' || a.status === allAppsStatusFilter)
+            .map((application) => (
+              <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      {application.status === 'pending' && <Clock className="w-5 h-5 text-yellow-500" />}
+                      {application.status === 'approved' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                      {application.status === 'rejected' && <XCircle className="w-5 h-5 text-red-500" />}
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        application.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {application.status === 'pending' ? 'Menunggu' : application.status === 'approved' ? 'Diluluskan' : 'Ditolak'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(application.createdAt).toLocaleString('ms-MY')}
+                      </span>
+                    </div>
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      {application.studentName} ({application.studentId || application.applicationId})
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-1">Kelas: {application.studentClass}</p>
+                    {application.dormitoryBlock && application.dormitoryRoom && (
+                      <p className="text-sm text-gray-600 mb-1">Asrama: {application.dormitoryBlock}{application.dormitoryRoom}</p>
+                    )}
+                    <p className="text-sm text-gray-600 mb-1"><strong>Sebab:</strong> {application.reason}</p>
+                    <p className="text-sm text-gray-500">
+                      Keluar: {new Date(application.exitDate).toLocaleDateString('ms-MY')} • {application.exitTime} → Balik: {new Date(application.returnDate).toLocaleDateString('ms-MY')} • {application.returnTime}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {(application.status === 'pending') && (
+                      <button
+                        onClick={() => setSelectedApplication(application.id)}
+                        className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>Semak</span>
+                      </button>
+                    )}
+                    {(application.status === 'approved' || application.status === 'rejected') && (
+                      <button
+                        onClick={() => setSelectedApplication(application.id)}
+                        className="inline-flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>Lihat</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          {applications.filter(a => allAppsStatusFilter === 'all' || a.status === allAppsStatusFilter).length === 0 && (
+            <div className="p-8 text-center">
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">Tiada permohonan</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Announcement Form Modal */}

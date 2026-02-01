@@ -25,18 +25,17 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({ onClose }) => {
 
     setIsSubmitting(true);
 
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    createAnnouncement({
-      ...formData,
-      createdBy: user?.name || '',
-      creatorRole: user?.role as 'hep' | 'warden' | 'admin',
-      isActive: true,
-    });
-
-    setIsSubmitting(false);
-    onClose();
+    try {
+      await createAnnouncement({
+        ...formData,
+        createdBy: user?.name || '',
+        creatorRole: user?.role as 'hep' | 'warden' | 'admin',
+        isActive: true,
+      } as any);
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const announcementTypes = [
@@ -159,9 +158,9 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({ onClose }) => {
                     }
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-sm mb-1">{formData.title}</h4>
-                    <p className="text-sm">{formData.content}</p>
-                    <div className="flex items-center space-x-4 mt-2 text-xs opacity-75">
+                    <h4 className="font-medium text-sm mb-1 text-gray-900">{formData.title}</h4>
+                    <p className="text-sm text-gray-900">{formData.content}</p>
+                    <div className="flex items-center space-x-4 mt-2 text-xs text-gray-700">
                       <span>Oleh: {user?.name}</span>
                       <span>{new Date().toLocaleDateString('ms-MY')}</span>
                     </div>

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, Shield, Users, FileText, BarChart3, Settings, CreditCard as Edit, Menu, X, Home, Plus, Clock, CheckCircle, Search, Megaphone, MessageCircle } from 'lucide-react';
+import { useApplications } from '../contexts/ApplicationContext';
+import { LogOut, User, Shield, Users, FileText, BarChart3, Settings, CreditCard as Edit, Menu, X, Home, Plus, Clock, CheckCircle, Search, Megaphone, MessageCircle, Bell, PanelLeftClose } from 'lucide-react';
 import ProfileEditor from './shared/ProfileEditor';
 import SystemMaintenance from './shared/SystemMaintenance';
 import UserManagement from './shared/UserManagement';
@@ -8,6 +9,7 @@ import DarkModeToggle from './shared/DarkModeToggle';
 import StatisticsModal from './shared/StatisticsModal';
 import AdminLiveChatManager from './admin/AdminLiveChatManager';
 import AlertModal from './shared/AlertModal';
+import BackToTop from './shared/BackToTop';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,11 +17,41 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { getActiveAnnouncements } = useApplications();
   const [showProfileEditor, setShowProfileEditor] = React.useState(false);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  const activeAnnouncements = getActiveAnnouncements();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [showSystemMaintenance, setShowSystemMaintenance] = React.useState(false);
   const [showUserManagement, setShowUserManagement] = React.useState(false);
   const [showStatistics, setShowStatistics] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => {
+    try {
+      return localStorage.getItem('kvpass_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('kvpass_sidebar_collapsed', String(sidebarCollapsed));
+    } catch {
+      // ignore
+    }
+  }, [sidebarCollapsed]);
   const [showAdminLiveChat, setShowAdminLiveChat] = React.useState(false);
   const [liveChatNotifications, setLiveChatNotifications] = React.useState(0);
   const [navigationAction, setNavigationAction] = React.useState<string | null>(null);
@@ -101,13 +133,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       }
         
       case 'all-applications':
-        // Show all applications view
-        setModalState({
-          isOpen: true,
-          type: 'info',
-          title: 'Maklumat',
-          message: 'Fungsi "Semua Permohonan" akan dibuka'
-        });
+        // Scroll to all applications section (HEP/Warden)
+        setNavigationAction('all-applications');
         break;
         
       case 'verification': {
@@ -251,76 +278,123 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex items-center justify-between h-16 px-4 bg-gray-900">
-          <div className="flex items-center space-x-2">
-            <img 
-              src="/logo_kv copy.png" 
-              alt="KVB Logo" 
-              className="w-12 h-12 object-contain filter brightness-0 invert"
-            />
-            <div className="text-white">
-              <div className="text-sm font-bold">KVB-PASS</div>
-              <div className="text-xs text-gray-300">{user?.icNumber}</div>
-            </div>
+      {/* Sidebar - Mobile: overlay, Desktop: collapsible */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 bg-gray-800 flex flex-col transition-all duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0
+          ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}
+          w-64`}
+      >
+        {/* Header */}
+        <div className={`flex items-center bg-gray-900 border-b border-gray-700 flex-shrink-0 ${sidebarCollapsed ? 'lg:justify-center lg:px-2 h-16' : 'justify-between px-4 h-20'}`}>
+          <div className={`flex items-center min-w-0 ${sidebarCollapsed ? 'lg:justify-center lg:w-full' : 'space-x-3 flex-1'}`}>
+            <button
+              type="button"
+              onClick={() => sidebarCollapsed && setSidebarCollapsed(false)}
+              className={`flex-shrink-0 flex items-center justify-center bg-white rounded-lg overflow-hidden p-1 outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-gray-900
+                ${sidebarCollapsed ? 'w-10 h-10 lg:cursor-pointer lg:hover:ring-2 lg:hover:ring-blue-400' : 'w-12 h-10 cursor-default'}
+                `}
+              title={sidebarCollapsed ? 'Klik untuk buka menu' : undefined}
+            >
+              <img
+                src="/logo_kv.png"
+                alt="Logo KV"
+                className="h-full w-auto object-contain"
+              />
+            </button>
+            {!sidebarCollapsed && (
+              <>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-white truncate">KVB-PASS</div>
+                  <div className="text-xs text-gray-400 truncate" title={user?.icNumber}>
+                    {user?.icNumber || '—'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="hidden lg:flex flex-shrink-0 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+                  title="Tutup menu"
+                >
+                  <PanelLeftClose className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-white"
+            className="lg:hidden flex-shrink-0 p-1 text-gray-400 hover:text-white rounded"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="px-4 py-4">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            MAIN CATEGORY
-          </div>
+        {/* Main Nav */}
+        <div className={`py-4 flex-1 overflow-y-auto sidebar-nav ${sidebarCollapsed ? 'lg:px-2' : 'px-4'}`} role="navigation">
+          {!sidebarCollapsed && (
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
+              MAIN CATEGORY
+            </div>
+          )}
           <nav className="space-y-1">
             {getNavigationItems().map((item) => {
               const IconComponent = item.icon;
               return (
                 <button
                   key={item.id}
-                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
+                  className={`w-full flex items-center text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors
+                    ${sidebarCollapsed ? 'lg:justify-center lg:px-2 lg:py-3 px-3 py-2' : 'px-3 py-2'}
+                    `}
                   onClick={() => handleNavigation(item.id)}
+                  title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <IconComponent className="w-5 h-5 mr-3" />
-                  {item.label}
+                  <IconComponent className="w-5 h-5 flex-shrink-0" />
+                  {!sidebarCollapsed && <span className="ml-3 text-sm font-medium">{item.label}</span>}
                 </button>
               );
             })}
           </nav>
         </div>
 
-        <div className="px-4 py-4 border-t border-gray-700">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            APPEARANCE
-          </div>
+        {/* Appearance / Settings */}
+        <div className={`py-4 border-t border-gray-700 flex-shrink-0 ${sidebarCollapsed ? 'lg:px-2' : 'px-4'}`}>
+          {!sidebarCollapsed && (
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
+              APPEARANCE
+            </div>
+          )}
           <nav className="space-y-1">
             <button
               onClick={() => setShowProfileEditor(true)}
-              className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
+              className={`w-full flex items-center text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors
+                ${sidebarCollapsed ? 'lg:justify-center lg:px-2 lg:py-3 px-3 py-2' : 'px-3 py-2'}
+                `}
+              title={sidebarCollapsed ? 'Edit Profil' : undefined}
             >
-              <Edit className="w-5 h-5 mr-3" />
-              Edit Profil
+              <Edit className="w-5 h-5 flex-shrink-0" />
+              {!sidebarCollapsed && <span className="ml-3 text-sm font-medium">Edit Profil</span>}
             </button>
             {user?.role === 'admin' && (
               <>
                 <button
                   onClick={() => setShowUserManagement(true)}
-                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
+                  className={`w-full flex items-center text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors
+                    ${sidebarCollapsed ? 'lg:justify-center lg:px-2 lg:py-3 px-3 py-2' : 'px-3 py-2'}
+                    `}
+                  title={sidebarCollapsed ? 'Urus Pengguna' : undefined}
                 >
-                  <Users className="w-5 h-5 mr-3" />
-                  Urus Pengguna
+                  <Users className="w-5 h-5 flex-shrink-0" />
+                  {!sidebarCollapsed && <span className="ml-3 text-sm font-medium">Urus Pengguna</span>}
                 </button>
                 <button
                   onClick={() => setShowSystemMaintenance(true)}
-                  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
+                  className={`w-full flex items-center text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors
+                    ${sidebarCollapsed ? 'lg:justify-center lg:px-2 lg:py-3 px-3 py-2' : 'px-3 py-2'}
+                    `}
+                  title={sidebarCollapsed ? 'Penyelenggaraan' : undefined}
                 >
-                  <Settings className="w-5 h-5 mr-3" />
-                  Penyelenggaraan
+                  <Settings className="w-5 h-5 flex-shrink-0" />
+                  {!sidebarCollapsed && <span className="ml-3 text-sm font-medium">Penyelenggaraan</span>}
                 </button>
               </>
             )}
@@ -329,7 +403,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-0">
+      <div className={`flex-1 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Header */}
         <header className="bg-theme-primary shadow-sm border-b border-theme-primary h-16">
           <div className="flex items-center justify-between h-full px-4">
@@ -348,6 +422,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   <User className="w-5 h-5" />
                 </button>
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="p-2 rounded-md text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary transition-colors relative"
+                    title="Notifikasi / Pengumuman"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {activeAnnouncements.length > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center min-w-[16px]">
+                        {activeAnnouncements.length > 3 ? '3+' : activeAnnouncements.length}
+                      </span>
+                    )}
+                  </button>
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                      <div className="p-3 border-b border-gray-100 bg-gray-50 rounded-t-lg">
+                        <h3 className="font-semibold text-gray-900">Pengumuman</h3>
+                      </div>
+                      <div className="max-h-72 overflow-y-auto">
+                        {activeAnnouncements.length === 0 ? (
+                          <div className="p-6 text-center text-gray-500 text-sm">
+                            Tiada pengumuman
+                          </div>
+                        ) : (
+                          activeAnnouncements.map((ann) => (
+                            <div
+                              key={ann.id}
+                              className="p-4 border-b border-gray-100 hover:bg-gray-50 last:border-b-0"
+                            >
+                              <p className="font-medium text-gray-900 text-sm mb-1">{ann.title}</p>
+                              <p className="text-gray-600 text-xs line-clamp-2">{ann.content}</p>
+                              <p className="text-gray-400 text-xs mt-2">
+                                {ann.createdBy} • {new Date(ann.createdAt).toLocaleDateString('ms-MY')}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -378,10 +493,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <span className="text-sm font-medium text-blue-600">Active Users: {getActiveUsersCount()}</span>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <img src="/logo_kv copy.png" alt="Kolej Vokasional Besut" className="h-8 w-auto object-contain" />
-              </div>
-              
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-theme-primary">{user?.name}</p>
@@ -402,13 +513,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content */}
-        <main className="p-6 bg-theme-secondary min-h-screen">
+        <main className="p-4 md:p-6 bg-theme-secondary min-h-screen">
           {React.cloneElement(children as React.ReactElement, { 
             handleNavigation: handleNavigation,
             navigationAction: navigationAction
           })}
         </main>
       </div>
+
+      {/* Back to top button */}
+      <BackToTop />
 
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (

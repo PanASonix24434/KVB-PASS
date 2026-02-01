@@ -30,7 +30,8 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({
     phoneNumber: '',
-    parentPhone: ''
+    parentPhone: '',
+    profilePhoto: ''
   });
 
   // Phone number validation
@@ -84,8 +85,31 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Final validation - ensure all data is complete
+    const phoneError = validatePhoneNumber(formData.phoneNumber);
+    const parentPhoneError = validatePhoneNumber(formData.parentPhone);
+    if (!phoneError.isValid || !parentPhoneError.isValid) {
+      setValidationErrors({
+        phoneNumber: phoneError.error,
+        parentPhone: parentPhoneError.error,
+        profilePhoto: ''
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    if (!formData.profilePhoto || formData.profilePhoto.trim() === '') {
+      setValidationErrors(prev => ({ ...prev, profilePhoto: 'Sila muat naik gambar pasport anda.' }));
+      setIsSubmitting(false);
+      return;
+    }
+    if (!formData.fullName || !formData.homeAddress || !formData.program || !formData.studyYear || !formData.parentName || !formData.parentPhone) {
+      setIsSubmitting(false);
+      return;
+    }
+    if (formData.residenceStatus === 'Pelajar Asrama' && (!formData.dormitoryBlock || !formData.dormitoryRoom)) {
+      setIsSubmitting(false);
+      return;
+    }
 
     await updateUserProfile(formData);
     setIsSubmitting(false);
@@ -93,7 +117,30 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
   };
 
   const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+    let canProceed = true;
+    
+    if (currentStep === 1) {
+      if (!formData.email || formData.email.trim() === '') canProceed = false;
+    } else if (currentStep === 2) {
+      if (!formData.fullName || !formData.phoneNumber || !formData.homeAddress) canProceed = false;
+      const phoneError = validatePhoneNumber(formData.phoneNumber);
+      if (!phoneError.isValid) canProceed = false;
+      if (!formData.profilePhoto || formData.profilePhoto.trim() === '') {
+        setValidationErrors(prev => ({ ...prev, profilePhoto: 'Sila muat naik gambar pasport anda.' }));
+        canProceed = false;
+      } else {
+        setValidationErrors(prev => ({ ...prev, profilePhoto: '' }));
+      }
+    } else if (currentStep === 3) {
+      if (!formData.program || !formData.studyYear) canProceed = false;
+      if (formData.residenceStatus === 'Pelajar Asrama' && (!formData.dormitoryBlock || !formData.dormitoryRoom)) canProceed = false;
+    } else if (currentStep === 4) {
+      if (!formData.parentName || !formData.parentPhone) canProceed = false;
+      const parentPhoneError = validatePhoneNumber(formData.parentPhone);
+      if (!parentPhoneError.isValid) canProceed = false;
+    }
+    
+    if (canProceed && currentStep < 4) setCurrentStep(currentStep + 1);
   };
 
   const prevStep = () => {
@@ -297,6 +344,9 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
                     <p className="text-xs text-gray-600 mt-2">
                       Gambar ini digunakan untuk pengesahan identiti dan surat kebenaran digital
                     </p>
+                    {validationErrors.profilePhoto && (
+                      <p className="text-red-500 text-sm mt-2">{validationErrors.profilePhoto}</p>
+                    )}
                   </div>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">

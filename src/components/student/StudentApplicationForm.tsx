@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Shield, Phone, Home, GraduationCap, Users, Save, AlertCircle, ArrowLeft, Upload, CheckCircle } from 'lucide-react';
 import { StudentProfile } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { hashPassword } from '../../lib/authUtils';
 import AlertModal from '../shared/AlertModal';
 
 interface StudentApplicationFormProps {
@@ -35,7 +36,8 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
     parentPhone: '',
     password: '',
     confirmPassword: '',
-    email: ''
+    email: '',
+    profilePhoto: ''
   });
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -147,7 +149,7 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Final validation
+    // Final validation - ensure all data is complete
     const icError = validateICNumber(formData.icNumber);
     const phoneError = validatePhoneNumber(formData.phoneNumber);
     const parentPhoneError = validatePhoneNumber(formData.parentPhone);
@@ -155,6 +157,17 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
     const confirmPasswordError = formData.password !== formData.confirmPassword 
       ? { isValid: false, error: 'Kata laluan tidak sepadan.' }
       : { isValid: true, error: '' };
+
+    if (!formData.profilePhoto || formData.profilePhoto.trim() === '') {
+      setModalState({
+        isOpen: true,
+        type: 'warning',
+        title: 'Data Tidak Lengkap',
+        message: 'Sila muat naik gambar pasport anda sebelum menghantar permohonan.'
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     if (!icError.isValid || !phoneError.isValid || !parentPhoneError.isValid || 
         !passwordError.isValid || !confirmPasswordError.isValid) {
@@ -164,7 +177,8 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
         parentPhone: parentPhoneError.error,
         password: passwordError.error,
         confirmPassword: confirmPasswordError.error,
-        email: ''
+        email: '',
+        profilePhoto: ''
       });
       setIsSubmitting(false);
       return;
@@ -189,7 +203,8 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
         return;
       }
 
-      // Create student account with pending status
+      const passwordHash = await hashPassword(formData.password, formData.icNumber.trim());
+
       const { data: newUser, error } = await supabase
         .from('users')
         .insert({
@@ -197,11 +212,12 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
           ic_number: formData.icNumber.trim(),
           email: formData.email.trim(),
           role: 'student',
-          password_hash: formData.password, // TODO: Hash password properly
+          password_hash: passwordHash,
+          student_id: null,
           profile_completed: false,
           profile: {
             ...formData,
-            password: undefined, // Don't store password in profile
+            password: undefined,
             confirmPassword: undefined
           },
           created_at: new Date().toISOString(),
@@ -219,6 +235,10 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
         });
         setIsSubmitting(false);
         return;
+      }
+
+      if (newUser) {
+        await supabase.from('users').update({ student_id: newUser.id }).eq('id', newUser.id);
       }
 
       // Success
@@ -253,6 +273,14 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
       if (formData.password !== formData.confirmPassword) {
         canProceed = false;
       }
+      // Basic email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (formData.email && !emailRegex.test(formData.email.trim())) {
+        setValidationErrors(prev => ({ ...prev, email: 'Sila masukkan alamat e-mel yang sah.' }));
+        canProceed = false;
+      } else {
+        setValidationErrors(prev => ({ ...prev, email: '' }));
+      }
     } else if (currentStep === 2) {
       // Validate personal info
       if (!formData.fullName || !formData.icNumber || !formData.phoneNumber || !formData.homeAddress) {
@@ -261,6 +289,17 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
       const icError = validateICNumber(formData.icNumber);
       if (!icError.isValid) {
         canProceed = false;
+      }
+      const phoneError = validatePhoneNumber(formData.phoneNumber);
+      if (!phoneError.isValid) {
+        canProceed = false;
+      }
+      // Validate profile photo (required for data completeness)
+      if (!formData.profilePhoto || formData.profilePhoto.trim() === '') {
+        setValidationErrors(prev => ({ ...prev, profilePhoto: 'Sila muat naik gambar pasport anda.' }));
+        canProceed = false;
+      } else {
+        setValidationErrors(prev => ({ ...prev, profilePhoto: '' }));
       }
     } else if (currentStep === 3) {
       // Validate academic info
@@ -273,6 +312,10 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
     } else if (currentStep === 4) {
       // Validate parent info
       if (!formData.parentName || !formData.parentPhone) {
+        canProceed = false;
+      }
+      const parentPhoneError = validatePhoneNumber(formData.parentPhone);
+      if (!parentPhoneError.isValid) {
         canProceed = false;
       }
     }
@@ -511,6 +554,9 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
                         Format: JPG, PNG (Maksimum 2MB)<br/>
                         Saiz: Gambar bersaiz pasport
                       </p>
+                      {validationErrors.profilePhoto && (
+                        <p className="text-red-500 text-sm mt-2">{validationErrors.profilePhoto}</p>
+                      )}
                     </div>
                   </div>
                 </div>

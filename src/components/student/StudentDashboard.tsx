@@ -4,7 +4,6 @@ import { useApplications } from '../../contexts/ApplicationContext';
 import { Plus, FileText, Clock, CheckCircle, XCircle, Eye, Building, CreditCard as Edit, BarChart3, AlertCircle, Calendar, History, Phone, User, Send, Filter, Search, MessageCircle } from 'lucide-react';
 import ApplicationForm from './ApplicationForm';
 import DigitalPass from './DigitalPass';
-import AnnouncementBanner from '../shared/AnnouncementBanner';
 import LiveChatWidget from '../shared/LiveChatWidget';
 import AlertModal from '../shared/AlertModal';
 
@@ -31,8 +30,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction })
     message: ''
   });
   
-  // Get applications for current student - must be defined before useEffect
-  const applications = getApplicationsByStudent(user?.studentId || '');
+  // Get applications for current student (use user.id when studentId not set)
+  const applications = getApplicationsByStudent(user?.studentId || user?.id || '');
   
   // Handle navigation actions from Layout
   React.useEffect(() => {
@@ -193,9 +192,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction })
 
   return (
     <div className="space-y-6">
-      {/* Announcements */}
-      <AnnouncementBanner />
-
       {/* Welcome Header */}
       <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
@@ -231,7 +227,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction })
           
           {/* Content */}
           <div className="p-6 space-y-4">
-            <div className="mb-4" style={{ display: 'none' }}>
+            <div className="mb-4">
               <button
                 onClick={() => setShowForm(true)}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
@@ -333,7 +329,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction })
               </button>
 
               {showFilters && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200" style={{ display: 'none' }}>
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">

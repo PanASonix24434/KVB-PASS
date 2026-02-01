@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { hashPassword } from '../../lib/authUtils';
 import { User as UserType, StudentProfile } from '../../types';
 import { X, Users, Plus, Trash2, Eye, UserPlus, AlertCircle, Filter, Search, User, GraduationCap, Shield } from 'lucide-react';
 
@@ -150,7 +151,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         return;
       }
 
-      // Prepare data for Supabase (snake_case)
+      const defaultPassword = '123456';
+      const passwordHash = await hashPassword(defaultPassword, newUser.icNumber.trim());
+
       const dbData = {
         name: newUser.name.trim(),
         ic_number: newUser.icNumber.trim(),
@@ -162,7 +165,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         dormitory_room: null,
         profile_completed: false,
         profile: null,
-        password_hash: '123456', // Default password - should be hashed in production
+        password_hash: passwordHash,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Key, CheckCircle, AlertCircle, User, Lock } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { hashPassword } from '../../lib/authUtils';
 
 interface ForgotPasswordModalProps {
   onClose: () => void;
@@ -7,6 +9,7 @@ interface ForgotPasswordModalProps {
 
 const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) => {
   const [step, setStep] = useState<'request' | 'verify' | 'reset' | 'success'>('request');
+  const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     userId: '',
     email: '',
@@ -78,60 +81,39 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
       [field]: validation.error
     }));
   };
-  // Mock user data for verification
-  const mockUsers = [
-    { id: '060501110209', email: 'pelajar1@student.kv.edu.my', name: 'Pelajar 1' },
-    { id: '060614110373', email: 'pelajar2@student.kv.edu.my', name: 'Pelajar 2' },
-    { id: '012345678910', email: 'rahman@kv.edu.my', name: 'Tuan Rahimi' },
-    { id: '012345678911', email: 'fatimah@kv.edu.my', name: 'Tuan Shah' },
-    { id: '012345678912', email: 'azman@kv.edu.my', name: 'Pengawal Keselamatan' },
-    { id: '061221110051', email: 'admin@kv.edu.my', name: 'Encik Muhammad Ihsan' },
-  ];
-
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, ic_number, email')
+        .eq('ic_number', formData.userId.trim())
+        .maybeSingle();
 
-    // Verify user exists
-    const user = mockUsers.find(u => u.id === formData.userId && u.email === formData.email);
-    
-    if (!user) {
-      setError('User ID atau alamat e-mel tidak dijumpai dalam sistem');
+      if (error || !data) {
+        setError('User ID tidak dijumpai dalam sistem');
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.email.toLowerCase() !== formData.email.trim().toLowerCase()) {
+        setError('Alamat e-mel tidak sepadan dengan akaun ini');
+        setIsLoading(false);
+        return;
+      }
+
+      setVerifiedUserId(data.id);
+      localStorage.setItem('reset_user_id', data.id);
+
       setIsLoading(false);
-      return;
-    }
-
-    // Generate and "send" OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    localStorage.setItem('reset_otp', otp);
-    localStorage.setItem('reset_user', JSON.stringify(user));
-    
-    setIsLoading(false);
-    setStep('verify');
-  };
-
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const storedOTP = localStorage.getItem('reset_otp');
-    
-    if (formData.otp !== storedOTP) {
-      setError('Kod OTP tidak sah. Sila semak semula.');
+      setStep('reset');
+    } catch {
+      setError('Ralat menyambung ke pelayan. Sila cuba lagi.');
       setIsLoading(false);
-      return;
     }
-
-    setIsLoading(false);
-    setStep('reset');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -144,21 +126,43 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
     }
 
     if (formData.newPassword.length < 6) {
-      setError('Kata laluan mestilah sekurang-kurangnya 6 aksara');
+      setError('Kata laluan mestilah sekurang-kurangnya 6 digit');
+      return;
+    }
+
+    const userId = verifiedUserId || localStorage.getItem('reset_user_id');
+    if (!userId) {
+      setError('Sesi tamat. Sila mulakan semula.');
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('ic_number')
+        .eq('id', userId)
+        .single();
 
-    // Clean up temporary data
-    localStorage.removeItem('reset_otp');
-    localStorage.removeItem('reset_user');
+      const icNumber = (userData as { ic_number?: string })?.ic_number || '';
+      const passwordHash = await hashPassword(formData.newPassword, icNumber);
 
-    setIsLoading(false);
-    setStep('success');
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+
+      localStorage.removeItem('reset_otp');
+      localStorage.removeItem('reset_user_id');
+      setStep('success');
+    } catch {
+      setError('Gagal menetapkan kata laluan baru. Sila cuba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderStep = () => {
@@ -226,72 +230,8 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
               disabled={isLoading}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Menghantar...' : 'Hantar Kod Verifikasi'}
+              {isLoading ? 'Mengesahkan...' : 'Sahkan & Tetapkan Semula Kata Laluan'}
             </button>
-          </form>
-        );
-
-      case 'verify':
-        return (
-          <form onSubmit={handleVerifyOTP} className="space-y-6">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-green-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Verifikasi Kod OTP</h2>
-              <p className="text-gray-600">Kod verifikasi 6 digit telah dihantar ke e-mel anda</p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Untuk tujuan demo:</p>
-                  <p>Kod OTP: <span className="font-mono font-bold">{localStorage.getItem('reset_otp')}</span></p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kod Verifikasi (OTP) *
-              </label>
-              <input
-                type="text"
-                value={formData.otp}
-                onChange={(e) => setFormData(prev => ({ ...prev, otp: e.target.value }))}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg font-mono"
-                placeholder="000000"
-                maxLength={6}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex space-x-4">
-              <button
-                type="button"
-                onClick={() => setStep('request')}
-                className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Kembali
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Mengesahkan...' : 'Sahkan Kod'}
-              </button>
-            </div>
           </form>
         );
 
@@ -370,13 +310,22 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Menetapkan...' : 'Tetapkan Kata Laluan'}
-            </button>
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={() => setStep('request')}
+                className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Kembali
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Menetapkan...' : 'Tetapkan Kata Laluan'}
+              </button>
+            </div>
           </form>
         );
 

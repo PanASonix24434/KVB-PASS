@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ApplicationProvider } from './contexts/ApplicationContext';
 import Layout from './components/Layout';
 import LandingPage from './components/LandingPage';
 import ProfileCompletion from './components/student/ProfileCompletion';
-import StudentDashboard from './components/student/StudentDashboard';
-import StaffDashboard from './components/staff/StaffDashboard';
-import SecurityDashboard from './components/security/SecurityDashboard';
-import AdminDashboard from './components/admin/AdminDashboard';
 import { useDarkMode } from './hooks/useDarkMode';
+
+const StudentDashboard = lazy(() => import('./components/student/StudentDashboard'));
+const StaffDashboard = lazy(() => import('./components/staff/StaffDashboard'));
+const SecurityDashboard = lazy(() => import('./components/security/SecurityDashboard'));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 import { hasSupabaseConfig, missingSupabaseVars } from './lib/supabase';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -100,20 +101,43 @@ const AppContent: React.FC = () => {
   }
 
   const renderDashboard = () => {
+    const DashboardLoading = () => (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
+          <p className="text-gray-600 text-sm">Memuatkan...</p>
+        </div>
+      </div>
+    );
+
     try {
-      console.log('Rendering dashboard for role:', user.role, 'User:', user);
       switch (user.role) {
         case 'student':
-          return <StudentDashboard />;
+          return (
+            <Suspense fallback={<DashboardLoading />}>
+              <StudentDashboard />
+            </Suspense>
+          );
         case 'hep':
         case 'warden':
-          return <StaffDashboard />;
+          return (
+            <Suspense fallback={<DashboardLoading />}>
+              <StaffDashboard />
+            </Suspense>
+          );
         case 'security':
-          return <SecurityDashboard />;
+          return (
+            <Suspense fallback={<DashboardLoading />}>
+              <SecurityDashboard />
+            </Suspense>
+          );
         case 'admin':
-          return <AdminDashboard />;
+          return (
+            <Suspense fallback={<DashboardLoading />}>
+              <AdminDashboard />
+            </Suspense>
+          );
         default:
-          console.warn('Unknown user role:', user.role);
           return (
             <div className="p-6">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

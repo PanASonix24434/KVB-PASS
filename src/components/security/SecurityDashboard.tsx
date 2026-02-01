@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { Shield, Search, CheckCircle, XCircle, Clock, LogOut, LogIn, AlertTriangle, User, QrCode, Camera, MessageCircle } from 'lucide-react';
-import AnnouncementBanner from '../shared/AnnouncementBanner';
 import LiveChatWidget from '../shared/LiveChatWidget';
 
 const SecurityDashboard: React.FC = () => {
@@ -79,9 +78,6 @@ const SecurityDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Announcements */}
-      <AnnouncementBanner />
-
       {/* Welcome Section */}
       <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-center justify-between">

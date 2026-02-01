@@ -8,7 +8,7 @@ interface ProfileEditorProps {
 }
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateBasicInfo, updatePassword, updateProfilePhoto } = useAuth();
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -44,41 +44,45 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
     setError('');
     setSuccess('');
 
-    // Validate passwords if changing
     if (formData.newPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
         setError('Kata laluan baru tidak sepadan');
         return;
       }
       if (formData.newPassword.length < 6) {
-        setError('Kata laluan baru mestilah sekurang-kurangnya 6 aksara');
+        setError('Kata laluan baru mestilah sekurang-kurangnya 6 digit');
+        return;
+      }
+      if (!formData.currentPassword) {
+        setError('Sila masukkan kata laluan semasa untuk menukar kata laluan');
         return;
       }
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      await updateBasicInfo(formData.name.trim(), formData.email.trim());
 
-    // Update profile (in real app, this would call an API)
-    const updatedUser = {
-      ...user!,
-      name: formData.name,
-      email: formData.email,
-    };
+      if (formData.newPassword && formData.currentPassword) {
+        const result = await updatePassword(formData.currentPassword, formData.newPassword);
+        if (!result.success) {
+          setError(result.error || 'Gagal menukar kata laluan');
+          setIsSubmitting(false);
+          return;
+        }
+      }
 
-    // Store updated user
-    localStorage.setItem('kvpass_user', JSON.stringify(updatedUser));
-    
-    setSuccess('Profil berjaya dikemaskini');
-    setIsSubmitting(false);
-    
-    // Close modal after success
-    setTimeout(() => {
-      onClose();
-      window.location.reload(); // Refresh to show updated data
-    }, 1500);
+      setSuccess('Profil berjaya dikemaskini');
+      setTimeout(() => {
+        onClose();
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      setError('Ralat semasa mengemas kini profil. Sila cuba lagi.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -168,31 +172,29 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose }) => {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            // Create preview URL and update user profile
                             const reader = new FileReader();
-                            reader.onload = (event) => {
+                            reader.onload = async (event) => {
                               const imageUrl = event.target?.result as string;
-                              // Update user profile with new photo
-                              const updatedUser = {
-                                ...user!,
-                                profile: {
-                                  ...user!.profile!,
-                                  profilePhoto: imageUrl
-                                }
-                              };
-                              localStorage.setItem('kvpass_user', JSON.stringify(updatedUser));
-                              setModalState({
-                                isOpen: true,
-                                type: 'success',
-                                title: 'Berjaya',
-                                message: 'Gambar berjaya dikemas kini'
-                              });
-                              setTimeout(() => {
-                                window.location.reload();
-                              }, 1500);
+                              try {
+                                await updateProfilePhoto(imageUrl);
+                                setModalState({
+                                  isOpen: true,
+                                  type: 'success',
+                                  title: 'Berjaya',
+                                  message: 'Gambar berjaya dikemas kini'
+                                });
+                                setTimeout(() => window.location.reload(), 1000);
+                              } catch {
+                                setModalState({
+                                  isOpen: true,
+                                  type: 'error',
+                                  title: 'Ralat',
+                                  message: 'Gagal mengemas kini gambar'
+                                });
+                              }
                             };
                             reader.readAsDataURL(file);
                           }

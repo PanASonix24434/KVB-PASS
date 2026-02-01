@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { ArrowLeft, Upload, Calendar, Clock, MapPin, Phone, FileText } from 'lucide-react';
 import AlertModal from '../shared/AlertModal';
+
+// Helper to check if profile has minimum required data for application
+const isProfileComplete = (user: { profile?: { fullName?: string; parentName?: string; parentPhone?: string; profilePhoto?: string; program?: string; studyYear?: string } | null } | null): boolean => {
+  if (!user?.profile) return false;
+  const p = user.profile;
+  if (!p.fullName || !p.parentName || !p.parentPhone) return false;
+  const phoneValid = p.parentPhone && p.parentPhone.replace(/\D/g, '').length >= 10;
+  if (!phoneValid) return false;
+  return true;
+};
 
 interface ApplicationFormProps {
   onBack: () => void;
@@ -11,6 +21,13 @@ interface ApplicationFormProps {
 const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
   const { user } = useAuth();
   const { submitApplication } = useApplications();
+  const [showIncompleteProfileModal, setShowIncompleteProfileModal] = useState(false);
+  
+  useEffect(() => {
+    if (user && user.role === 'student' && !isProfileComplete(user)) {
+      setShowIncompleteProfileModal(true);
+    }
+  }, [user]);
   
   const [formData, setFormData] = useState({
     reason: '',
@@ -74,6 +91,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (profileIncomplete) {
+      setShowIncompleteProfileModal(true);
+      return;
+    }
+    
     setIsSubmitting(true);
 
     // Determine routing based on day and time
@@ -115,11 +138,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
       routingReason = 'Jumaat & Sabtu → Warden sahaja';
     }
 
-    // Simulate file upload delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     const applicationData = {
-      studentId: user?.studentId || '',
+      studentId: user?.studentId || user?.id || '',
       studentName: user?.name || '',
       studentIc: user?.icNumber || '',
       studentClass: user?.class || '',
@@ -180,9 +200,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
   ];
 
   const isHostelStudent = user?.profile?.residenceStatus === 'Pelajar Asrama';
+  const profileIncomplete = user && user.role === 'student' && !isProfileComplete(user);
 
   return (
     <div className="max-w-4xl mx-auto">
+      {profileIncomplete && (
+        <AlertModal
+          isOpen={showIncompleteProfileModal}
+          onClose={() => {
+            setShowIncompleteProfileModal(false);
+            onBack();
+          }}
+          type="warning"
+          title="Profil Tidak Lengkap"
+          message="Sila lengkapkan profil anda (nama ibu bapa/penjaga, nombor telefon kecemasan) melalui Edit Profil sebelum membuat permohonan keluar."
+          buttonText="Kembali ke Dashboard"
+        />
+      )}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         {/* Header */}
         <div className="p-6 border-b border-gray-100">
