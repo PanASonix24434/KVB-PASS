@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
-import { Plus, FileText, Clock, CheckCircle, XCircle, Eye, Building, CreditCard as Edit, BarChart3, AlertCircle, Calendar, History, Phone, User, Send, Filter, Search, MessageCircle } from 'lucide-react';
+import { useNavigation } from '../../contexts/NavigationContext';
+import { Plus, FileText, Clock, CheckCircle, XCircle, Eye, Building, CreditCard as Edit, BarChart3, AlertCircle, Calendar, History, Phone, User, Send, Search, MessageCircle } from 'lucide-react';
 import ApplicationForm from './ApplicationForm';
 import DigitalPass from './DigitalPass';
 import LiveChatWidget from '../shared/LiveChatWidget';
 import AlertModal from '../shared/AlertModal';
 
-interface StudentDashboardProps {
-  handleNavigation?: (itemId: string) => void;
-  navigationAction?: string | null;
-}
-
-const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction }) => {
+const StudentDashboard: React.FC = () => {
+  const { navigationAction } = useNavigation() || {};
   const { user } = useAuth();
   const { getApplicationsByStudent } = useApplications();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(() => {
+    try {
+      const flag = localStorage.getItem('kvpass_show_application_form');
+      if (flag === 'true') {
+        localStorage.removeItem('kvpass_show_application_form');
+        return true;
+      }
+    } catch {}
+    return false;
+  });
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [modalState, setModalState] = useState<{
@@ -90,22 +96,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction })
     }
   }, [navigationAction, applications, user?.studentId]);
 
-  const [filters, setFilters] = useState({
-    residenceStatus: 'all',
-    studyYear: 'all', 
-    program: 'all',
-    status: 'all'
-  });
-  const [showFilters, setShowFilters] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
   
-  // Filter applications based on selected filters
-  const filteredApplications = applications.filter(app => {
-    if (filters.status !== 'all' && app.status !== filters.status) {
-      return false;
-    }
-    return true;
-  });
+  // Pelajar hanya nampak permohonan sendiri - tiada filter tambahan
+  const filteredApplications = applications;
   
   const recentApplications = filteredApplications.slice(0, 5);
   const latestApplication = applications.length > 0 ? applications[applications.length - 1] : null;
@@ -314,108 +308,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ navigationAction })
             </div>
           </div>
           
-          {/* Content */}
+          {/* Content - Pelajar hanya nampak sejarah permohonan sendiri */}
           <div className="p-6">
-            {/* Filter Controls for Students */}
-            <div className="mb-4">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
-                  showFilters ? 'bg-purple-50 border-purple-300 text-purple-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span>Filter Permohonan</span>
-              </button>
-
-              {showFilters && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Jenis Pelajar
-                      </label>
-                      <select
-                        value={filters.residenceStatus}
-                        onChange={(e) => setFilters(prev => ({ ...prev, residenceStatus: e.target.value }))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-transparent"
-                      >
-                        <option value="all">Semua Jenis</option>
-                        <option value="Pelajar Asrama">Pelajar Asrama</option>
-                        <option value="Pelajar Harian">Pelajar Harian (Luar)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Tahun Pengajian
-                      </label>
-                      <select
-                        value={filters.studyYear}
-                        onChange={(e) => setFilters(prev => ({ ...prev, studyYear: e.target.value }))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-transparent"
-                      >
-                        <option value="all">Semua Tahun</option>
-                        <option value="Tahun 1 SVM">Tahun 1 SVM</option>
-                        <option value="Tahun 2 SVM">Tahun 2 SVM</option>
-                        <option value="Tahun 1 DVM">Tahun 1 DVM</option>
-                        <option value="Tahun 2 DVM">Tahun 2 DVM</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Kursus/Program
-                      </label>
-                      <select
-                        value={filters.program}
-                        onChange={(e) => setFilters(prev => ({ ...prev, program: e.target.value }))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-transparent"
-                      >
-                        <option value="all">Semua Program</option>
-                        <option value="Teknologi Maklumat">Teknologi Maklumat</option>
-                        <option value="Teknologi Automotif">Teknologi Automotif</option>
-                        <option value="Teknologi Elektrik">Teknologi Elektrik</option>
-                        <option value="Teknologi Pemesinan Industri">Teknologi Pemesinan Industri</option>
-                        <option value="Teknologi Penyejukan dan Penyamanan Udara">Teknologi Penyejukan dan Penyamanan Udara</option>
-                        <option value="Teknologi Pembinaan">Teknologi Pembinaan</option>
-                        <option value="Teknologi Kimpalan">Teknologi Kimpalan</option>
-                        <option value="Seni Kulinari">Seni Kulinari</option>
-                        <option value="Pengurusan Pelancongan">Pengurusan Pelancongan</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Status Permohonan
-                      </label>
-                      <select
-                        value={filters.status}
-                        onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-transparent"
-                      >
-                        <option value="all">Semua Status</option>
-                        <option value="pending">Dalam Proses</option>
-                        <option value="approved">Diluluskan</option>
-                        <option value="rejected">Ditolak</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      onClick={() => setFilters({ residenceStatus: 'all', studyYear: 'all', program: 'all', status: 'all' })}
-                      className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800 transition-colors"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
             {recentApplications.length === 0 ? (
               <div className="text-center py-8">
                 <History className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-sm">
-                  {applications.length === 0 ? 'Tiada sejarah permohonan' : 'Tiada permohonan mengikut kriteria filter'}
+                  {applications.length === 0 ? 'Tiada sejarah permohonan' : 'Tiada permohonan lagi'}
                 </p>
               </div>
             ) : (

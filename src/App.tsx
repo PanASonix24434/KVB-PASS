@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ApplicationProvider } from './contexts/ApplicationContext';
 import Layout from './components/Layout';
@@ -70,7 +71,12 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <LandingPage />;
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   // Safety check: ensure user has required properties
@@ -159,10 +165,21 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // After login, redirect to /app/apply if just registered (flag set)
+  const initialPath = typeof localStorage !== 'undefined' && localStorage.getItem('kvpass_show_application_form') === 'true'
+    ? '/app/apply'
+    : '/app/dashboard';
+
   return (
-    <Layout>
-      {renderDashboard()}
-    </Layout>
+    <Routes>
+      <Route path="/" element={<Navigate to={initialPath} replace />} />
+      <Route path="/app/*" element={
+        <Layout>
+          {renderDashboard()}
+        </Layout>
+      } />
+      <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+    </Routes>
   );
 };
 

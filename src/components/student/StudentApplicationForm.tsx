@@ -3,6 +3,7 @@ import { User, Shield, Phone, Home, GraduationCap, Users, Save, AlertCircle, Arr
 import { StudentProfile } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { hashPassword } from '../../lib/authUtils';
+import { useAuth } from '../../contexts/AuthContext';
 import AlertModal from '../shared/AlertModal';
 
 interface StudentApplicationFormProps {
@@ -10,6 +11,7 @@ interface StudentApplicationFormProps {
 }
 
 const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack }) => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState<StudentProfile & { password: string; confirmPassword: string }>({
     email: '',
     password: '',
@@ -214,7 +216,7 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
           role: 'student',
           password_hash: passwordHash,
           student_id: null,
-          profile_completed: false,
+          profile_completed: true,
           profile: {
             ...formData,
             password: undefined,
@@ -241,12 +243,12 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
         await supabase.from('users').update({ student_id: newUser.id }).eq('id', newUser.id);
       }
 
-      // Success
+      // Success - profil lengkap, pelajar boleh terus isi borang permohonan
       setModalState({
         isOpen: true,
         type: 'success',
-        title: 'Permohonan Berjaya Dihantar!',
-        message: `Permohonan anda telah berjaya dihantar untuk semakan.\n\nNo. Kad Pengenalan: ${formData.icNumber}\n\nAkaun anda akan diaktifkan selepas disahkan oleh pihak berautoriti. Sila tunggu notifikasi atau hubungi admin untuk maklumat lanjut.\n\nAnda boleh log masuk selepas akaun diaktifkan.`
+        title: 'Profil Berjaya Didaftarkan!',
+        message: `Maklumat profil anda telah berjaya didaftarkan.\n\nNo. Kad Pengenalan: ${formData.icNumber}\n\nAnda boleh terus mengisi borang permohonan keluar (Kebenaran Keluar) sekarang.`
       });
       setIsSubmitting(false);
     } catch (error) {
@@ -908,10 +910,21 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
       {/* Alert Modal */}
       <AlertModal
         isOpen={modalState.isOpen}
-        onClose={() => {
+        onClose={async () => {
           setModalState(prev => ({ ...prev, isOpen: false }));
           if (modalState.type === 'success') {
-            onBack();
+            // Auto-login dan terus tunjuk borang permohonan keluar
+            try {
+              localStorage.setItem('kvpass_show_application_form', 'true');
+              const ok = await login(formData.icNumber.trim(), formData.password);
+              if (!ok) {
+                localStorage.removeItem('kvpass_show_application_form');
+                onBack();
+              }
+            } catch {
+              localStorage.removeItem('kvpass_show_application_form');
+              onBack();
+            }
           }
         }}
         type={modalState.type}

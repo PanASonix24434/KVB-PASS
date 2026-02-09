@@ -47,7 +47,7 @@ const AnnouncementManager: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100">
+    <div className="bg-white rounded-xl border border-gray-100" data-section="announcements">
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">

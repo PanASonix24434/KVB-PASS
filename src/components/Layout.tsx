@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApplications } from '../contexts/ApplicationContext';
+import { NavigationProvider } from '../contexts/NavigationContext';
 import { LogOut, User, Shield, Users, FileText, BarChart3, Settings, CreditCard as Edit, Menu, X, Home, Plus, Clock, CheckCircle, Search, Megaphone, MessageCircle, Bell, PanelLeftClose } from 'lucide-react';
 import ProfileEditor from './shared/ProfileEditor';
 import SystemMaintenance from './shared/SystemMaintenance';
@@ -15,9 +17,13 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+const BASE_PATH = '/app';
+
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const { getActiveAnnouncements } = useApplications();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showProfileEditor, setShowProfileEditor] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -54,7 +60,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [sidebarCollapsed]);
   const [showAdminLiveChat, setShowAdminLiveChat] = React.useState(false);
   const [liveChatNotifications, setLiveChatNotifications] = React.useState(0);
-  const [navigationAction, setNavigationAction] = React.useState<string | null>(null);
   const [modalState, setModalState] = React.useState<{
     isOpen: boolean;
     type: 'success' | 'error' | 'warning' | 'info';
@@ -93,110 +98,65 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return unreadCount;
   }, [user?.role]);
 
-  // Handle navigation clicks
-  const handleNavigation = (itemId: string) => {
-    // Handle navigation based on itemId
-    switch (itemId) {
-      case 'dashboard':
-        // Already on dashboard - scroll to top or refresh
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        break;
-        
-      case 'statistics':
-        setShowStatistics(true);
-        break;
-        
-      case 'user-management':
-        setShowUserManagement(true);
-        break;
-        
-      case 'announcements': {
-        // Scroll to announcement section
-        const announcementSection = document.querySelector('[data-section="announcements"]');
-        if (announcementSection) {
-          announcementSection.scrollIntoView({ behavior: 'smooth' });
-        }
-        break;
-      }
-        
-      case 'maintenance':
-        setShowSystemMaintenance(true);
-        break;
-        
-      case 'pending': {
-        // Scroll to pending applications section
-        const pendingSection = document.querySelector('[data-section="pending"]');
-        if (pendingSection) {
-          pendingSection.scrollIntoView({ behavior: 'smooth' });
-        }
-        break;
-      }
-        
-      case 'all-applications':
-        // Scroll to all applications section (HEP/Warden)
-        setNavigationAction('all-applications');
-        break;
-        
-      case 'verification': {
-        // Scroll to verification section
-        const verificationSection = document.querySelector('[data-section="verification"]');
-        if (verificationSection) {
-          verificationSection.scrollIntoView({ behavior: 'smooth' });
-        }
-        break;
-      }
-        
-      case 'security-logs': {
-        // Scroll to security logs section
-        const logsSection = document.querySelector('[data-section="security-logs"]');
-        if (logsSection) {
-          logsSection.scrollIntoView({ behavior: 'smooth' });
-        }
-        break;
-      }
-        
-      case 'apply':
-        // Student apply for permission
-        if (user?.role === 'student') {
-          setNavigationAction('apply');
-          // Trigger notification to appropriate staff
-          const currentHour = new Date().getHours();
-          const isWorkingHours = currentHour >= 8 && currentHour < 17;
-          
-          const notification = {
-            id: Date.now().toString(),
-            type: 'new_application',
-            message: `Permohonan baru daripada ${user.name}`,
-            targetRole: isWorkingHours ? 'hep' : 'warden',
-            timestamp: new Date(),
-            read: false
-          };
-          
-          // Store notification
-          const existingNotifications = JSON.parse(localStorage.getItem('kvpass_notifications') || '[]');
-          localStorage.setItem('kvpass_notifications', JSON.stringify([...existingNotifications, notification]));
-        }
-        break;
-        
-      case 'my-applications':
-        // Show student's applications
-        setNavigationAction('my-applications');
-        break;
-        
-      case 'digital-pass':
-        // Show digital pass
-        setNavigationAction('digital-pass');
-        break;
-        
-      default:
-        console.log(`Navigation to: ${itemId}`);
+  // Path mapping for sidebar navigation
+  const pathMap: Record<string, string> = {
+    dashboard: `${BASE_PATH}/dashboard`,
+    apply: `${BASE_PATH}/apply`,
+    'my-applications': `${BASE_PATH}/applications`,
+    'digital-pass': `${BASE_PATH}/digital-pass`,
+    pending: `${BASE_PATH}/pending`,
+    'all-applications': `${BASE_PATH}/all-applications`,
+    announcements: `${BASE_PATH}/announcements`,
+    verification: `${BASE_PATH}/verification`,
+    'security-logs': `${BASE_PATH}/logs`,
+    statistics: `${BASE_PATH}/statistics`,
+    'user-management': `${BASE_PATH}/users`,
+    maintenance: `${BASE_PATH}/maintenance`
+  };
+
+  // Redirect /app to /app/dashboard
+  useEffect(() => {
+    if (location.pathname === '/app') {
+      navigate(`${BASE_PATH}/dashboard`, { replace: true });
     }
-    
-    // Close mobile sidebar after navigation
+  }, [location.pathname, navigate]);
+
+  // Sync URL with modals - open when navigating to modal routes
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === `${BASE_PATH}/statistics`) setShowStatistics(true);
+    else if (path === `${BASE_PATH}/users`) setShowUserManagement(true);
+    else if (path === `${BASE_PATH}/maintenance`) setShowSystemMaintenance(true);
+  }, [location.pathname]);
+
+  // Derive navigationAction from URL for dashboards
+  const currentSection = location.pathname.replace(BASE_PATH, '').replace(/^\//, '') || 'dashboard';
+  const effectiveNavigationAction = 
+    currentSection === 'applications' ? 'my-applications' :
+    currentSection === 'logs' ? 'security-logs' :
+    currentSection === 'users' ? 'user-management' : currentSection;
+
+  // Handle navigation - for programmatic calls (e.g. from dashboard cards)
+  const handleNavigation = (itemId: string) => {
+    const path = pathMap[itemId];
+    if (path) navigate(path);
+
+    if (itemId === 'apply' && user?.role === 'student') {
+      const currentHour = new Date().getHours();
+      const isWorkingHours = currentHour >= 8 && currentHour < 17;
+      const notification = {
+        id: Date.now().toString(),
+        type: 'new_application',
+        message: `Permohonan baru daripada ${user.name}`,
+        targetRole: isWorkingHours ? 'hep' : 'warden',
+        timestamp: new Date(),
+        read: false
+      };
+      const existingNotifications = JSON.parse(localStorage.getItem('kvpass_notifications') || '[]');
+      localStorage.setItem('kvpass_notifications', JSON.stringify([...existingNotifications, notification]));
+    }
+
     setSidebarOpen(false);
-    
-    // Clear navigation action after a short delay to allow re-triggering
-    setTimeout(() => setNavigationAction(null), 100);
   };
 
   // Check for new live chat notifications (admin only)
@@ -238,38 +198,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const getNavigationItems = () => {
     const baseItems = [
-      { icon: Home, label: 'Dashboard', id: 'dashboard' }
+      { icon: Home, label: 'Dashboard', id: 'dashboard', path: `${BASE_PATH}/dashboard` }
     ];
 
     switch (user?.role) {
       case 'student':
         return [
           ...baseItems,
-          { icon: Plus, label: 'Mohon Kebenaran', id: 'apply' },
-          { icon: FileText, label: 'Permohonan Saya', id: 'my-applications' },
-          { icon: CheckCircle, label: 'Pas Digital', id: 'digital-pass' }
+          { icon: Plus, label: 'Mohon Kebenaran', id: 'apply', path: `${BASE_PATH}/apply` },
+          { icon: FileText, label: 'Permohonan Saya', id: 'my-applications', path: `${BASE_PATH}/applications` },
+          { icon: CheckCircle, label: 'Pas Digital', id: 'digital-pass', path: `${BASE_PATH}/digital-pass` }
         ];
       case 'hep':
       case 'warden':
         return [
           ...baseItems,
-          { icon: Clock, label: 'Permohonan Menunggu', id: 'pending' },
-          { icon: FileText, label: 'Semua Permohonan', id: 'all-applications' },
-          { icon: Megaphone, label: 'Pengumuman', id: 'announcements' }
+          { icon: Clock, label: 'Permohonan Menunggu', id: 'pending', path: `${BASE_PATH}/pending` },
+          { icon: FileText, label: 'Semua Permohonan', id: 'all-applications', path: `${BASE_PATH}/all-applications` },
+          { icon: Megaphone, label: 'Pengumuman', id: 'announcements', path: `${BASE_PATH}/announcements` }
         ];
       case 'security':
         return [
           ...baseItems,
-          { icon: Search, label: 'Pengesahan Pelajar', id: 'verification' },
-          { icon: Shield, label: 'Log Keselamatan', id: 'security-logs' }
+          { icon: Search, label: 'Pengesahan Pelajar', id: 'verification', path: `${BASE_PATH}/verification` },
+          { icon: Shield, label: 'Log Keselamatan', id: 'security-logs', path: `${BASE_PATH}/logs` }
         ];
       case 'admin':
         return [
           ...baseItems,
-          { icon: BarChart3, label: 'Statistik Sistem', id: 'statistics' },
-          { icon: Users, label: 'Pengurusan Pengguna', id: 'user-management' },
-          { icon: Megaphone, label: 'Pengumuman', id: 'announcements' },
-          { icon: Settings, label: 'Penyelenggaraan', id: 'maintenance' }
+          { icon: BarChart3, label: 'Statistik Sistem', id: 'statistics', path: `${BASE_PATH}/statistics` },
+          { icon: Users, label: 'Pengurusan Pengguna', id: 'user-management', path: `${BASE_PATH}/users` },
+          { icon: Megaphone, label: 'Pengumuman', id: 'announcements', path: `${BASE_PATH}/announcements` },
+          { icon: Settings, label: 'Penyelenggaraan', id: 'maintenance', path: `${BASE_PATH}/maintenance` }
         ];
       default:
         return baseItems;
@@ -339,18 +299,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <nav className="space-y-1">
             {getNavigationItems().map((item) => {
               const IconComponent = item.icon;
+              const isActive = location.pathname === item.path;
               return (
-                <button
+                <Link
                   key={item.id}
-                  className={`w-full flex items-center text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors
+                  to={item.path}
+                  className={`w-full flex items-center rounded-md transition-colors
+                    ${isActive ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
                     ${sidebarCollapsed ? 'lg:justify-center lg:px-2 lg:py-3 px-3 py-2' : 'px-3 py-2'}
                     `}
-                  onClick={() => handleNavigation(item.id)}
                   title={sidebarCollapsed ? item.label : undefined}
+                  onClick={() => setSidebarOpen(false)}
                 >
                   <IconComponent className="w-5 h-5 flex-shrink-0" />
                   {!sidebarCollapsed && <span className="ml-3 text-sm font-medium">{item.label}</span>}
-                </button>
+                </Link>
               );
             })}
           </nav>
@@ -514,10 +477,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Page Content */}
         <main className="p-4 md:p-6 bg-theme-secondary min-h-screen">
-          {React.cloneElement(children as React.ReactElement, { 
-            handleNavigation: handleNavigation,
-            navigationAction: navigationAction
-          })}
+          <NavigationProvider handleNavigation={handleNavigation} navigationAction={effectiveNavigationAction}>
+            {children}
+          </NavigationProvider>
         </main>
       </div>
 
@@ -538,15 +500,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
       
       {showSystemMaintenance && (
-        <SystemMaintenance onClose={() => setShowSystemMaintenance(false)} />
+        <SystemMaintenance onClose={() => { setShowSystemMaintenance(false); navigate(`${BASE_PATH}/dashboard`); }} />
       )}
       
       {showUserManagement && (
-        <UserManagement onClose={() => setShowUserManagement(false)} />
+        <UserManagement onClose={() => { setShowUserManagement(false); navigate(`${BASE_PATH}/dashboard`); }} />
       )}
       
       {showStatistics && (
-        <StatisticsModal onClose={() => setShowStatistics(false)} />
+        <StatisticsModal onClose={() => { setShowStatistics(false); navigate(`${BASE_PATH}/dashboard`); }} />
       )}
       
       {showAdminLiveChat && (

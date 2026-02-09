@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { Shield, Search, CheckCircle, XCircle, Clock, LogOut, LogIn, AlertTriangle, User, QrCode, Camera, MessageCircle } from 'lucide-react';
 import LiveChatWidget from '../shared/LiveChatWidget';
 
 const SecurityDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { navigationAction } = useNavigation() || {};
+
+  useEffect(() => {
+    if (!navigationAction) return;
+    const section = navigationAction === 'verification' ? 'student-verification' : 
+      navigationAction === 'security-logs' ? 'security-logs' : null;
+    if (section) {
+      setTimeout(() => {
+        document.querySelector(`[data-section="${section}"]`)?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [navigationAction]);
   const { applications, securityLogs, logSecurityAction, stats } = useApplications();
   const [searchIc, setSearchIc] = useState('');
   const [searchApplicationId, setSearchApplicationId] = useState('');
@@ -114,7 +127,10 @@ const SecurityDashboard: React.FC = () => {
         </div>
 
         {/* Verification Card */}
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+        <div
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => document.querySelector('[data-section="student-verification"]')?.scrollIntoView({ behavior: 'smooth' })}
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-lg font-medium mb-1">
@@ -129,7 +145,10 @@ const SecurityDashboard: React.FC = () => {
         </div>
 
         {/* Security Logs Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+        <div
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => document.querySelector('[data-section="security-logs"]')?.scrollIntoView({ behavior: 'smooth' })}
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-lg font-medium mb-1">
@@ -194,7 +213,7 @@ const SecurityDashboard: React.FC = () => {
       </div>
 
       {/* Student Verification */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm" data-section="student-verification">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">Pengesahan Pelajar</h2>
           <p className="text-sm text-gray-600">Masukkan nombor kad pengenalan untuk semak status kelulusan</p>
@@ -474,7 +493,7 @@ const SecurityDashboard: React.FC = () => {
       )}
 
       {/* Recent Security Logs */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm" data-section="security-logs">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">Log Keselamatan Terkini</h2>
         </div>

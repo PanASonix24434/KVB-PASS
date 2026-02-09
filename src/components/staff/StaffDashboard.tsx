@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { FileText, Clock, CheckCircle, XCircle, Eye, MessageSquare, Megaphone, Filter, Search, Building, Users, MessageCircle } from 'lucide-react';
 import ApplicationReview from './ApplicationReview';
 import AnnouncementForm from '../shared/AnnouncementForm';
 import LiveChatWidget from '../shared/LiveChatWidget';
 
-interface StaffDashboardProps {
-  navigationAction?: string | null;
-}
-
-const StaffDashboard: React.FC<StaffDashboardProps> = ({ navigationAction }) => {
+const StaffDashboard: React.FC = () => {
+  const { navigationAction } = useNavigation() || {};
   const { user } = useAuth();
   const { getPendingApplications, applications, stats } = useApplications();
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
@@ -31,12 +29,18 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ navigationAction }) => 
   const pendingApplications = getPendingApplications();
   const [allAppsStatusFilter, setAllAppsStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
-  // Handle navigation to all-applications section
+  // Handle navigation - scroll to section when route changes
   useEffect(() => {
-    if (navigationAction === 'all-applications') {
+    if (!navigationAction) return;
+    const sectionMap: Record<string, string> = {
+      'all-applications': 'all-applications',
+      'pending': 'pending',
+      'announcements': 'announcements'
+    };
+    const section = sectionMap[navigationAction];
+    if (section) {
       setTimeout(() => {
-        const section = document.querySelector('[data-section="all-applications"]');
-        if (section) section.scrollIntoView({ behavior: 'smooth' });
+        document.querySelector(`[data-section="${section}"]`)?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
   }, [navigationAction]);
@@ -258,7 +262,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ navigationAction }) => 
       </div>
 
       {/* Pending Applications */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm" data-section="pending">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">

@@ -1,17 +1,23 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 import { BarChart3, Users, FileText, Shield, Clock, CheckCircle, XCircle, TrendingUp, Megaphone, UserPlus, MessageCircle } from 'lucide-react';
 import AnnouncementManager from '../shared/AnnouncementManager';
 import UserManagement from '../shared/UserManagement';
 import LiveChatWidget from '../shared/LiveChatWidget';
 
-interface AdminDashboardProps {
-  handleNavigation?: (itemId: string) => void;
-}
-
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ handleNavigation }) => {
+const AdminDashboard: React.FC = () => {
+  const { handleNavigation, navigationAction } = useNavigation() || {};
   const { user } = useAuth();
+
+  React.useEffect(() => {
+    if (navigationAction === 'announcements') {
+      setTimeout(() => {
+        document.querySelector('[data-section="announcements"]')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [navigationAction]);
   const { applications, securityLogs, stats } = useApplications();
   const [showUserManagement, setShowUserManagement] = React.useState(false);
 
@@ -81,7 +87,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ handleNavigation }) => 
       {/* Quick Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* System Stats Card */}
-        <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow">
+        <div
+          className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => handleNavigation?.('statistics')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-3xl font-bold mb-1">
