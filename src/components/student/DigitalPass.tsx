@@ -113,6 +113,7 @@ Kolej Vokasional Besut
       {/* Back Button - Hidden when printing */}
       <div className="mb-6 print:hidden">
         <button
+          type="button"
           onClick={onBack}
           className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
         >

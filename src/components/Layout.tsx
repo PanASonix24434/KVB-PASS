@@ -267,8 +267,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-white truncate">KVB-PASS</div>
-                  <div className="text-xs text-gray-400 truncate" title={user?.icNumber}>
-                    {user?.icNumber || '—'}
+                  <div className="text-xs text-gray-400 truncate" title={user?.studentId ? `No. Matrik: ${user.studentId}` : user?.icNumber || '—'}>
+                    {user?.studentId || user?.icNumber || '—'}
                   </div>
                 </div>
                 <button

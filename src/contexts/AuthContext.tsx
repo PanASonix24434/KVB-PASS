@@ -7,10 +7,11 @@ interface AuthContextType {
   user: User | null;
   login: (icNumber: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateUserProfile: (profile: StudentProfile) => Promise<void>;
+  updateUserProfile: (profile: StudentProfile, studentId?: string) => Promise<void>;
   updateBasicInfo: (name: string, email: string) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   updateProfilePhoto: (photoUrl: string) => Promise<void>;
+  updateStudentId: (studentId: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -141,11 +142,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUserProfile = async (profile: StudentProfile): Promise<void> => {
+  const updateUserProfile = async (profile: StudentProfile, studentId?: string): Promise<void> => {
     if (!user) return;
     
     try {
-      const updatedData = {
+      const updatedData: Record<string, unknown> = {
         name: profile.fullName,
         email: profile.email,
         class: `${profile.studyYear} - ${profile.program}`,
@@ -155,6 +156,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile: profile,
         updated_at: new Date().toISOString(),
       };
+      if (studentId !== undefined && studentId.trim()) {
+        updatedData.student_id = studentId.trim();
+      }
 
       const { data, error } = await supabase
         .from('users')
@@ -264,6 +268,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateStudentId = async (studentId: string): Promise<void> => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ student_id: studentId.trim(), updated_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        const updatedUser = mapDbUserToUser(data as DatabaseUser);
+        setUser(updatedUser);
+        localStorage.setItem('kvpass_user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error updating student ID:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('kvpass_user');
@@ -279,6 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateBasicInfo,
         updatePassword,
         updateProfilePhoto,
+        updateStudentId,
         isLoading,
       }}
     >

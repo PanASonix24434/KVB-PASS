@@ -8,8 +8,9 @@ interface ForgotPasswordModalProps {
 }
 
 const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) => {
-  const [step, setStep] = useState<'request' | 'verify' | 'reset' | 'success'>('request');
+  const [step, setStep] = useState<'request' | 'verify' | 'reset' | 'email_sent' | 'success'>('request');
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<string>('');
   const [formData, setFormData] = useState({
     userId: '',
     email: '',
@@ -105,11 +106,44 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
         return;
       }
 
-      setVerifiedUserId(data.id);
-      localStorage.setItem('reset_user_id', data.id);
+      const resetToken = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 jam
 
+      const { error: insertError } = await supabase
+        .from('password_reset_tokens')
+        .insert({
+          user_id: data.id,
+          token: resetToken,
+          expires_at: expiresAt
+        });
+
+      if (insertError) {
+        setError('Ralat mencipta pautan reset. Sila cuba lagi.');
+        setIsLoading(false);
+        return;
+      }
+
+      const resetUrl = `${window.location.origin}/reset-password?token=${resetToken}`;
+      setResetLink(resetUrl);
+
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-password-reset-email', {
+        body: {
+          email: data.email,
+          resetUrl,
+          userName: data.name || 'Pengguna',
+        },
+      });
+
+      if (emailError) {
+        console.error('Edge Function error:', emailError);
+        console.error('Response context:', (emailError as { context?: unknown })?.context);
+      } else if (emailData?.error) {
+        console.error('Edge Function returned error:', emailData);
+      }
+
+      setVerifiedUserId(data.id);
       setIsLoading(false);
-      setStep('reset');
+      setStep('email_sent');
     } catch {
       setError('Ralat menyambung ke pelayan. Sila cuba lagi.');
       setIsLoading(false);
@@ -230,7 +264,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
               disabled={isLoading}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Mengesahkan...' : 'Sahkan & Tetapkan Semula Kata Laluan'}
+              {isLoading ? 'Menghantar...' : 'Hantar Pautan Reset ke E-mel'}
             </button>
           </form>
         );
@@ -327,6 +361,30 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
               </button>
             </div>
           </form>
+        );
+
+      case 'email_sent':
+        return (
+          <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Pautan Dihantar ke E-mel!</h2>
+              <p className="text-gray-600 mb-4">
+                Sila semak e-mel anda. Pautan untuk menetapkan kata laluan baharu telah dihantar ke alamat e-mel berdaftar anda.
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Klik pautan dalam e-mel untuk pergi ke halaman Tetapkan Kata Laluan Baharu. Pautan akan tamat dalam 1 jam.
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Kembali ke Log Masuk
+            </button>
+          </div>
         );
 
       case 'success':

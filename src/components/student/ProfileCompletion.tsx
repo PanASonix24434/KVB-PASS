@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { User, Shield, Phone, Home, GraduationCap, Users, Save, AlertCircle } from 'lucide-react';
 import { StudentProfile } from '../../types';
@@ -9,6 +9,16 @@ interface ProfileCompletionProps {
 
 const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => {
   const { user, updateUserProfile } = useAuth();
+  
+  const [noKadMatrik, setNoKadMatrik] = useState(user?.studentId || '');
+  
+  const hasSyncedMatrik = useRef(false);
+  useEffect(() => {
+    if (user?.studentId && !hasSyncedMatrik.current) {
+      setNoKadMatrik(user.studentId);
+      hasSyncedMatrik.current = true;
+    }
+  }, [user?.studentId]);
   
   const [formData, setFormData] = useState<StudentProfile>({
     email: user?.email || '',
@@ -29,6 +39,7 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({
+    noKadMatrik: '',
     phoneNumber: '',
     parentPhone: '',
     profilePhoto: ''
@@ -102,6 +113,11 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
       setIsSubmitting(false);
       return;
     }
+    if (!noKadMatrik.trim()) {
+      setValidationErrors(prev => ({ ...prev, noKadMatrik: 'Sila masukkan No. Kad Matrik.' }));
+      setIsSubmitting(false);
+      return;
+    }
     if (!formData.fullName || !formData.homeAddress || !formData.program || !formData.studyYear || !formData.parentName || !formData.parentPhone) {
       setIsSubmitting(false);
       return;
@@ -111,7 +127,7 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
       return;
     }
 
-    await updateUserProfile(formData);
+    await updateUserProfile(formData, noKadMatrik.trim());
     setIsSubmitting(false);
     onComplete();
   };
@@ -122,6 +138,12 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
     if (currentStep === 1) {
       if (!formData.email || formData.email.trim() === '') canProceed = false;
     } else if (currentStep === 2) {
+      if (!noKadMatrik.trim()) {
+        setValidationErrors(prev => ({ ...prev, noKadMatrik: 'Sila masukkan No. Kad Matrik.' }));
+        canProceed = false;
+      } else {
+        setValidationErrors(prev => ({ ...prev, noKadMatrik: '' }));
+      }
       if (!formData.fullName || !formData.phoneNumber || !formData.homeAddress) canProceed = false;
       const phoneError = validatePhoneNumber(formData.phoneNumber);
       if (!phoneError.isValid) canProceed = false;
@@ -238,6 +260,27 @@ const ProfileCompletion: React.FC<ProfileCompletionProps> = ({ onComplete }) => 
                   disabled
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  No. Kad Matrik *
+                </label>
+                <input
+                  type="text"
+                  value={noKadMatrik}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNoKadMatrik(val);
+                    setValidationErrors(prev => ({ ...prev, noKadMatrik: val.trim() ? '' : prev.noKadMatrik }));
+                  }}
+                  placeholder="Contoh: 24DTK001"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Disimpan dalam users.student_id (No. Pelajar)</p>
+                {validationErrors.noKadMatrik && (
+                  <p className="text-red-600 text-sm mt-1">{validationErrors.noKadMatrik}</p>
+                )}
               </div>
 
               <div>

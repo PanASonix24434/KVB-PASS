@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 *.sql
+
+# Supabase Edge Function secrets (Resend API key)
+supabase/functions/.env

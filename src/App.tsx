@@ -1,10 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ApplicationProvider } from './contexts/ApplicationContext';
 import Layout from './components/Layout';
 import LandingPage from './components/LandingPage';
 import ProfileCompletion from './components/student/ProfileCompletion';
+import ResetPasswordPage from './components/auth/ResetPasswordPage';
 import { useDarkMode } from './hooks/useDarkMode';
 
 const StudentDashboard = lazy(() => import('./components/student/StudentDashboard'));
@@ -74,6 +75,7 @@ const AppContent: React.FC = () => {
     return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );

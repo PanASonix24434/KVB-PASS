@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "supabase:login": "npx supabase login",
+    "supabase:link": "npx supabase link --project-ref dnnwtbmgspvlkejupotp",
+    "supabase:deploy": "npx supabase functions deploy send-password-reset-email --no-verify-jwt",
+    "supabase:secrets": "supabase secrets set"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
@@ -27,6 +31,7 @@
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
+    "supabase": "^2.76.12",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",

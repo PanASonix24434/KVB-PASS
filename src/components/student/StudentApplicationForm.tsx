@@ -12,12 +12,13 @@ interface StudentApplicationFormProps {
 
 const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack }) => {
   const { login } = useAuth();
-  const [formData, setFormData] = useState<StudentProfile & { password: string; confirmPassword: string }>({
+  const [formData, setFormData] = useState<StudentProfile & { password: string; confirmPassword: string; noMatrik: string }>({
     email: '',
     password: '',
     confirmPassword: '',
     fullName: '',
     icNumber: '',
+    noMatrik: '',
     gender: 'Lelaki',
     phoneNumber: '',
     homeAddress: '',
@@ -34,6 +35,7 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({
     icNumber: '',
+    noMatrik: '',
     phoneNumber: '',
     parentPhone: '',
     password: '',
@@ -160,6 +162,17 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
       ? { isValid: false, error: 'Kata laluan tidak sepadan.' }
       : { isValid: true, error: '' };
 
+    if (!formData.noMatrik?.trim()) {
+      setValidationErrors(prev => ({ ...prev, noMatrik: 'Sila masukkan No. Matrik.' }));
+      setModalState({
+        isOpen: true,
+        type: 'warning',
+        title: 'Data Tidak Lengkap',
+        message: 'Sila masukkan No. Matrik (contoh: TKV0124KB000) dalam Maklumat Peribadi.'
+      });
+      setIsSubmitting(false);
+      return;
+    }
     if (!formData.profilePhoto || formData.profilePhoto.trim() === '') {
       setModalState({
         isOpen: true,
@@ -175,6 +188,7 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
         !passwordError.isValid || !confirmPasswordError.isValid) {
       setValidationErrors({
         icNumber: icError.error,
+        noMatrik: formData.noMatrik?.trim() ? '' : 'Sila masukkan No. Matrik.',
         phoneNumber: phoneError.error,
         parentPhone: parentPhoneError.error,
         password: passwordError.error,
@@ -215,12 +229,23 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
           email: formData.email.trim(),
           role: 'student',
           password_hash: passwordHash,
-          student_id: null,
+          student_id: formData.noMatrik?.trim() || null,
           profile_completed: true,
           profile: {
-            ...formData,
-            password: undefined,
-            confirmPassword: undefined
+            email: formData.email,
+            fullName: formData.fullName,
+            icNumber: formData.icNumber,
+            gender: formData.gender,
+            phoneNumber: formData.phoneNumber,
+            homeAddress: formData.homeAddress,
+            residenceStatus: formData.residenceStatus,
+            program: formData.program,
+            studyYear: formData.studyYear,
+            dormitoryBlock: formData.dormitoryBlock,
+            dormitoryRoom: formData.dormitoryRoom,
+            parentName: formData.parentName,
+            parentPhone: formData.parentPhone,
+            profilePhoto: formData.profilePhoto
           },
           created_at: new Date().toISOString(),
         })
@@ -239,8 +264,8 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
         return;
       }
 
-      if (newUser) {
-        await supabase.from('users').update({ student_id: newUser.id }).eq('id', newUser.id);
+      if (newUser && formData.noMatrik?.trim()) {
+        await supabase.from('users').update({ student_id: formData.noMatrik.trim() }).eq('id', newUser.id);
       }
 
       // Success - profil lengkap, pelajar boleh terus isi borang permohonan
@@ -285,6 +310,12 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
       }
     } else if (currentStep === 2) {
       // Validate personal info
+      if (!formData.noMatrik?.trim()) {
+        setValidationErrors(prev => ({ ...prev, noMatrik: 'Sila masukkan No. Matrik.' }));
+        canProceed = false;
+      } else {
+        setValidationErrors(prev => ({ ...prev, noMatrik: '' }));
+      }
       if (!formData.fullName || !formData.icNumber || !formData.phoneNumber || !formData.homeAddress) {
         canProceed = false;
       }
@@ -458,6 +489,27 @@ const StudentApplicationForm: React.FC<StudentApplicationFormProps> = ({ onBack 
                   <p className="text-red-500 text-sm mt-1">{validationErrors.icNumber}</p>
                 )}
                 <p className="text-xs text-gray-500 mt-1">12 digit nombor sahaja</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  No. Matrik *
+                </label>
+                <input
+                  type="text"
+                  value={formData.noMatrik}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ ...prev, noMatrik: val }));
+                    setValidationErrors(prev => ({ ...prev, noMatrik: val.trim() ? '' : prev.noMatrik }));
+                  }}
+                  placeholder="Contoh: TKV0124KB000"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Disimpan dalam users.student_id (No. Pelajar)</p>
+                {validationErrors.noMatrik && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.noMatrik}</p>
+                )}
               </div>
 
               <div>

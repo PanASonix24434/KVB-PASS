@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { useNavigation } from '../../contexts/NavigationContext';
@@ -9,6 +10,7 @@ import LiveChatWidget from '../shared/LiveChatWidget';
 import AlertModal from '../shared/AlertModal';
 
 const StudentDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { navigationAction } = useNavigation() || {};
   const { user } = useAuth();
   const { getApplicationsByStudent } = useApplications();
@@ -96,6 +98,15 @@ const StudentDashboard: React.FC = () => {
     }
   }, [navigationAction, applications, user?.studentId]);
 
+  // Scroll to top when opening Digital Pass
+  useEffect(() => {
+    if (selectedApplication) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const main = document.querySelector('main');
+      if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedApplication]);
+
   const [showLiveChat, setShowLiveChat] = useState(false);
   
   // Pelajar hanya nampak permohonan sendiri - tiada filter tambahan
@@ -177,7 +188,15 @@ const StudentDashboard: React.FC = () => {
   };
 
   if (selectedApplication) {
-    return <DigitalPass applicationId={selectedApplication} onBack={() => setSelectedApplication(null)} />;
+    return (
+      <DigitalPass
+        applicationId={selectedApplication}
+        onBack={() => {
+          setSelectedApplication(null);
+          navigate('/app/dashboard');
+        }}
+      />
+    );
   }
 
   if (showForm) {
@@ -265,7 +284,12 @@ const StudentDashboard: React.FC = () => {
                           Surat kelulusan tersedia untuk tontonan.
                         </p>
                         <button
-                          onClick={() => setSelectedApplication(latestApplication.id)}
+                          type="button"
+                          onClick={() => {
+                            setSelectedApplication(latestApplication.id);
+                            navigate('/app/digital-pass');
+                            window.scrollTo(0, 0);
+                          }}
                           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
                         >
                           Lihat Surat Digital

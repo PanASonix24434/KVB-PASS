@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { ArrowLeft, Upload, Calendar, Clock, MapPin, Phone, FileText } from 'lucide-react';
@@ -19,7 +19,7 @@ interface ApplicationFormProps {
 }
 
 const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
-  const { user } = useAuth();
+  const { user, updateStudentId } = useAuth();
   const { submitApplication } = useApplications();
   const [showIncompleteProfileModal, setShowIncompleteProfileModal] = useState(false);
   
@@ -28,6 +28,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
       setShowIncompleteProfileModal(true);
     }
   }, [user]);
+
+  const hasSyncedMatrik = useRef(false);
+  useEffect(() => {
+    if (user?.studentId && !hasSyncedMatrik.current) {
+      setFormData(prev => ({ ...prev, noMatrik: user.studentId || '' }));
+      hasSyncedMatrik.current = true;
+    }
+  }, [user?.studentId]);
   
   const [formData, setFormData] = useState({
     reason: '',
@@ -46,6 +54,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({
+    noMatrik: '',
     emergencyPhone: ''
   });
   const [modalState, setModalState] = useState<{
@@ -153,6 +162,15 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
     try {
       const createdApplication = await submitApplication(applicationData);
       
+      // Save No. Matrik to user table if student entered it
+      if (user?.role === 'student' && user?.studentId) {
+        try {
+          await updateStudentId(user?.studentId);
+        } catch (err) {
+          console.warn('Could not update student_id in user table:', err);
+        }
+      }
+      
       setIsSubmitting(false);
       
       setModalState({
@@ -240,6 +258,25 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
           <div className="bg-gray-50 rounded-xl p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Maklumat Pelajar</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {user?.role === 'student' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">No. Matrik *</label>
+                  <input
+                    type="text"
+                    value={user?.studentId || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, studentId: val }));
+                    }}
+                    placeholder="Contoh: 24DTK001"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">No. Matrik akan disimpan sebagai No. Pelajar</p>
+                  {validationErrors.noMatrik && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.noMatrik}</p>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nama Penuh</label>
                 <input
