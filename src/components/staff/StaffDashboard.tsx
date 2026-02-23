@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { FileText, Clock, CheckCircle, XCircle, Eye, MessageSquare, Megaphone, Filter, Search, Building, Users, MessageCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, Megaphone, Filter, Search, MessageSquare, KeySquare } from 'lucide-react';
 import ApplicationReview from './ApplicationReview';
 import AnnouncementForm from '../shared/AnnouncementForm';
 import LiveChatWidget from '../shared/LiveChatWidget';
@@ -56,8 +56,24 @@ const StaffDashboard: React.FC = () => {
     return true;
   });
 
+  /**
+   * Deduplicate pending applications: same student + same trip (exit/return, reason, destination)
+   * Keep the latest by createdAt so we don't show duplicate submissions.
+   */
+  const deduplicationKey = (app: { studentId: string; exitDate: string; exitTime: string; returnDate: string; returnTime: string; reason: string; destination: string }) =>
+    `${app.studentId}|${app.exitDate}|${app.exitTime}|${app.returnDate}|${app.returnTime}|${app.reason}|${app.destination}`;
+  const seenKeys = new Map<string, typeof relevantApplications[0]>();
+  for (const app of relevantApplications) {
+    const key = deduplicationKey(app);
+    const existing = seenKeys.get(key);
+    if (!existing || new Date(app.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+      seenKeys.set(key, app);
+    }
+  }
+  const dedupedRelevantApplications = Array.from(seenKeys.values());
+
   // Apply additional filters for Warden
-  const filteredApplications = relevantApplications.filter(app => {
+  const filteredApplications = dedupedRelevantApplications.filter(app => {
     // Search term filter
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
@@ -87,14 +103,6 @@ const StaffDashboard: React.FC = () => {
       case 'hep': return 'Ketua Hal Ehwal Pelajar';
       case 'warden': return 'Ketua Warden Asrama';
       default: return 'Pegawai';
-    }
-  };
-
-  const getWorkingHoursText = (role: string) => {
-    switch (role) {
-      case 'hep': return 'Waktu Bertugas: 8:00 AM - 5:00 PM (Hari Bekerja)';
-      case 'warden': return 'Waktu Bertugas: Selepas 5:00 PM, Hujung Minggu & Cuti Umum';
-      default: return '';
     }
   };
 
@@ -407,7 +415,7 @@ const StaffDashboard: React.FC = () => {
                       onClick={() => setSelectedApplication(application.id)}
                       className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
                     >
-                      <Eye className="w-4 h-4" />
+                      <KeySquare className="w-4 h-4" />
                       <span>Semak</span>
                     </button>
                   </div>
@@ -477,7 +485,7 @@ const StaffDashboard: React.FC = () => {
                         onClick={() => setSelectedApplication(application.id)}
                         className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
                       >
-                        <Eye className="w-4 h-4" />
+                        <KeySquare className="w-4 h-4" />
                         <span>Semak</span>
                       </button>
                     )}
@@ -486,7 +494,7 @@ const StaffDashboard: React.FC = () => {
                         onClick={() => setSelectedApplication(application.id)}
                         className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-gray-600 text-white px-4 py-2.5 rounded-lg hover:bg-gray-700 transition-colors min-h-[44px]"
                       >
-                        <Eye className="w-4 h-4" />
+                        <KeySquare className="w-4 h-4" />
                         <span>Lihat</span>
                       </button>
                     )}
@@ -516,7 +524,7 @@ const StaffDashboard: React.FC = () => {
             className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
             title="Live Chat Admin"
           >
-            <MessageCircle className="w-6 h-6" />
+            <MessageSquare className="w-6 h-6" />
           </button>
         </div>
       )}

@@ -499,7 +499,9 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const getActiveAnnouncements = () => {
-    return announcements.filter(announcement => announcement.isActive);
+    const list = announcements.filter(announcement => announcement.isActive);
+    const byId = new Map(list.map(a => [a.id, a]));
+    return Array.from(byId.values());
   };
 
   // Calculate stats

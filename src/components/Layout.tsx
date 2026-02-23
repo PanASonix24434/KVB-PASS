@@ -28,7 +28,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  const activeAnnouncements = getActiveAnnouncements();
+  const activeAnnouncements = (() => {
+    const list = getActiveAnnouncements();
+    const byId = new Map(list.map(a => [a.id, a]));
+    return Array.from(byId.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  })();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
