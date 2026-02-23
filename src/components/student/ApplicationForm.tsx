@@ -175,7 +175,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack, forceRouteTo 
       if (supportingDocumentFiles.length > 0) {
         try {
           await uploadSupportingDocuments(createdApplication.id, supportingDocumentFiles);
-        } catch (uploadErr) {
+        } catch {
           documentUploadFailed = true;
         }
       }
@@ -200,7 +200,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack, forceRouteTo 
         title: 'Permohonan Berjaya!',
         message: successMessage
       });
-    } catch (error) {
+    } catch {
       setIsSubmitting(false);
       setModalState({
         isOpen: true,
@@ -487,7 +487,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack, forceRouteTo 
                   onChange={(e) => setFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={user?.profile?.parentName || "Nama ibu bapa/penjaga"}
+                  placeholder="contoh: Ali Bin Abu"
                 />
               </div>
               <div>

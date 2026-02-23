@@ -405,11 +405,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     )}
                   </button>
                   {showNotifications && (
-                    <div className="absolute left-2 right-2 sm:left-auto sm:right-0 sm:w-80 w-[calc(100vw-1rem)] mt-2 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                      <div className="p-3 border-b border-gray-100 bg-gray-50 rounded-t-lg">
-                        <h3 className="font-semibold text-gray-900">Pengumuman</h3>
+                    <div className="absolute left-2 right-2 sm:left-auto sm:right-0 sm:w-80 w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] min-w-0 mt-2 max-h-96 overflow-x-hidden overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                      <div className="p-3 border-b border-gray-100 bg-gray-50 rounded-t-lg min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">Pengumuman</h3>
                       </div>
-                      <div className="max-h-72 overflow-y-auto">
+                      <div className="max-h-72 overflow-y-auto overflow-x-hidden min-w-0">
                         {activeAnnouncements.length === 0 ? (
                           <div className="p-6 text-center text-gray-500 text-sm">
                             Tiada pengumuman
@@ -418,11 +418,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                           activeAnnouncements.map((ann) => (
                             <div
                               key={ann.id}
-                              className="p-4 border-b border-gray-100 hover:bg-gray-50 last:border-b-0"
+                              className="p-4 border-b border-gray-100 hover:bg-gray-50 last:border-b-0 min-w-0 break-words"
                             >
-                              <p className="font-medium text-gray-900 text-sm mb-1">{ann.title}</p>
-                              <p className="text-gray-600 text-xs line-clamp-2">{ann.content}</p>
-                              <p className="text-gray-400 text-xs mt-2">
+                              <p className="font-medium text-gray-900 text-sm mb-1 break-words">{ann.title}</p>
+                              <p className="text-gray-600 text-xs line-clamp-2 break-words">{ann.content}</p>
+                              <p className="text-gray-400 text-xs mt-2 break-words">
                                 {ann.createdBy} • {new Date(ann.createdAt).toLocaleDateString('ms-MY')}
                               </p>
                             </div>
