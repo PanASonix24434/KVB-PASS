@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { Plus, FileText, Clock, CheckCircle, XCircle, Eye, Building, CreditCard as Edit, BarChart3, AlertCircle, Calendar, History, Phone, User, Send, Search, MessageCircle } from 'lucide-react';
+import { Plus, FileText, Clock, CheckCircle, XCircle, AlertCircle, Calendar, History, Phone, User, Send, MessageCircle } from 'lucide-react';
 import ApplicationForm from './ApplicationForm';
 import DigitalPass from './DigitalPass';
 import LiveChatWidget from '../shared/LiveChatWidget';
@@ -21,11 +21,12 @@ const StudentDashboard: React.FC = () => {
         localStorage.removeItem('kvpass_show_application_form');
         return true;
       }
-    } catch {}
+    } catch {
+      return false;
+    }
     return false;
   });
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
-  const [showAllHistory, setShowAllHistory] = useState(false);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: 'success' | 'error' | 'warning' | 'info';
@@ -205,16 +206,11 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
       <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 scroll-container">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900 animate-scroll-text">
-                Welcome to Kolej Vokasional Besut Permission System ( KVB-PASS )
-              </h1>
-            </div>
-          </div>
+        <div className="scroll-container">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 animate-scroll-text">
+            Welcome to Kolej Vokasional Besut Permission System ( KVB-PASS )
+          </h1>
         </div>
       </div>
 
@@ -225,21 +221,15 @@ const StudentDashboard: React.FC = () => {
         </span>
       </div>
 
-      {/* Main Dashboard Boxes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* KOTAK 1: Permohonan Pulang Awal */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Header */}
-          <div className="bg-blue-600 text-white p-4">
+          <div className="bg-blue-600 text-white p-3 sm:p-4">
             <div className="flex items-center space-x-3">
-              <FileText className="w-6 h-6" />
-              <h2 className="text-lg font-semibold">Permohonan Pulang Awal</h2>
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <h2 className="text-base sm:text-lg font-semibold">Permohonan Pulang Awal</h2>
             </div>
           </div>
-          
-          {/* Content */}
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             <div className="mb-4">
               <button
                 onClick={() => setShowForm(true)}
@@ -322,18 +312,14 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* KOTAK 2: Sejarah Permohonan */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" data-section="my-applications">
-          {/* Header */}
-          <div className="bg-purple-600 text-white p-4">
+          <div className="bg-purple-600 text-white p-3 sm:p-4">
             <div className="flex items-center space-x-3">
-              <History className="w-6 h-6" />
-              <h2 className="text-lg font-semibold">Sejarah Permohonan</h2>
+              <History className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <h2 className="text-base sm:text-lg font-semibold">Sejarah Permohonan</h2>
             </div>
           </div>
-          
-          {/* Content - Pelajar hanya nampak sejarah permohonan sendiri */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {recentApplications.length === 0 ? (
               <div className="text-center py-8">
                 <History className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -376,7 +362,7 @@ const StudentDashboard: React.FC = () => {
                 {/* Butang Lihat Semua Sejarah */}
                 {filteredApplications.length > 5 && (
                   <button
-                    onClick={() => setShowAllHistory(true)}
+                    onClick={() => navigate('/app/applications')}
                     className="w-full mt-4 bg-purple-100 text-purple-700 py-2 px-4 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium"
                   >
                     Lihat Semua Sejarah ({filteredApplications.length})
@@ -387,13 +373,11 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* KOTAK 3: Maklumat Warden / HEP */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Header */}
-          <div className="bg-orange-600 text-white p-4">
+          <div className="bg-orange-600 text-white p-3 sm:p-4">
             <div className="flex items-center space-x-3">
-              <User className="w-6 h-6" />
-              <h2 className="text-lg font-semibold">
+              <User className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <h2 className="text-base sm:text-lg font-semibold">
                 {isWorkingHours ? 'Maklumat HEP' : 'Maklumat Warden'}
               </h2>
             </div>

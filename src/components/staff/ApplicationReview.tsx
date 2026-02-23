@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
-import { ArrowLeft, CheckCircle, XCircle, FileText, Calendar, Clock, MapPin, Phone, User, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, FileText, Calendar, MapPin, Phone, User, MessageSquare, ExternalLink, Download } from 'lucide-react';
 
 interface ApplicationReviewProps {
   applicationId: string;
@@ -182,17 +182,48 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({ applicationId, on
             </div>
           </div>
 
-          {/* Supporting Documents */}
+          {/* Supporting Documents - KHP/Warden can view or download when doc is a URL */}
           {application.supportingDocuments.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-medium text-gray-900">Dokumen Sokongan</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {application.supportingDocuments.map((doc, index) => (
-                  <div key={index} className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
-                    <FileText className="w-5 h-5 text-gray-600" />
-                    <span className="text-sm text-gray-700">{doc}</span>
-                  </div>
-                ))}
+                {application.supportingDocuments.map((doc, index) => {
+                  const isUrl = typeof doc === 'string' && (doc.startsWith('http://') || doc.startsWith('https://'));
+                  const displayName = isUrl ? doc.split('/').pop()?.replace(/^\d+-/, '') || `Dokumen ${index + 1}` : doc;
+                  return (
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <FileText className="w-5 h-5 text-gray-600 shrink-0" />
+                        <span className="text-sm text-gray-700 truncate" title={displayName}>{displayName}</span>
+                      </div>
+                      {isUrl ? (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <a
+                            href={doc}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Lihat
+                          </a>
+                          <a
+                            href={doc}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-700"
+                          >
+                            <Download className="w-4 h-4" />
+                            Muat turun
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500 shrink-0">Tiada pratinjau (rekod lama)</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

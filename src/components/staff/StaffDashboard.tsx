@@ -121,19 +121,16 @@ const StaffDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
       <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4" data-section="announcements">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 scroll-container">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900 animate-scroll-text">
-                Welcome to Kolej Vokasional Besut Permission System ( KVB-PASS )
-              </h1>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0 scroll-container">
+            <h1 className="text-base sm:text-lg font-semibold text-gray-900 animate-scroll-text">
+              Welcome to Kolej Vokasional Besut Permission System ( KVB-PASS )
+            </h1>
           </div>
           <button
             onClick={() => setShowAnnouncementForm(true)}
-            className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors shrink-0 min-h-[44px]"
           >
             <Megaphone className="w-4 h-4" />
             <span>Buat Pengumuman</span>
@@ -367,9 +364,9 @@ const StaffDashboard: React.FC = () => {
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredApplications.map((application) => (
-              <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+              <div key={application.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-2">
                       <Clock className="w-5 h-5 text-yellow-500" />
                       <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
@@ -405,10 +402,10 @@ const StaffDashboard: React.FC = () => {
                     </p>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center sm:shrink-0">
                     <button
                       onClick={() => setSelectedApplication(application.id)}
-                      className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
                     >
                       <Eye className="w-4 h-4" />
                       <span>Semak</span>
@@ -423,9 +420,9 @@ const StaffDashboard: React.FC = () => {
 
       {/* Semua Permohonan - All Applications */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm" data-section="all-applications">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">
+        <div className="p-4 sm:p-6 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
               Semua Permohonan ({applications.filter(a => allAppsStatusFilter === 'all' || a.status === allAppsStatusFilter).length})
             </h2>
             <select
@@ -444,9 +441,9 @@ const StaffDashboard: React.FC = () => {
           {applications
             .filter(a => allAppsStatusFilter === 'all' || a.status === allAppsStatusFilter)
             .map((application) => (
-              <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+              <div key={application.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-2">
                       {application.status === 'pending' && <Clock className="w-5 h-5 text-yellow-500" />}
                       {application.status === 'approved' && <CheckCircle className="w-5 h-5 text-green-500" />}
@@ -474,11 +471,11 @@ const StaffDashboard: React.FC = () => {
                       Keluar: {new Date(application.exitDate).toLocaleDateString('ms-MY')} • {application.exitTime} → Balik: {new Date(application.returnDate).toLocaleDateString('ms-MY')} • {application.returnTime}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center sm:shrink-0">
                     {(application.status === 'pending') && (
                       <button
                         onClick={() => setSelectedApplication(application.id)}
-                        className="inline-flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
                       >
                         <Eye className="w-4 h-4" />
                         <span>Semak</span>
@@ -487,7 +484,7 @@ const StaffDashboard: React.FC = () => {
                     {(application.status === 'approved' || application.status === 'rejected') && (
                       <button
                         onClick={() => setSelectedApplication(application.id)}
-                        className="inline-flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                        className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-gray-600 text-white px-4 py-2.5 rounded-lg hover:bg-gray-700 transition-colors min-h-[44px]"
                       >
                         <Eye className="w-4 h-4" />
                         <span>Lihat</span>

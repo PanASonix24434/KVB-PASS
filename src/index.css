@@ -182,3 +182,10 @@ select:disabled {
     font-size: 16px !important;
   }
 }
+
+/* Mobile: use scroll for fixed backgrounds to avoid performance issues and parallax glitches */
+@media (max-width: 768px) {
+  .mobile-bg-scroll {
+    background-attachment: scroll !important;
+  }
+}

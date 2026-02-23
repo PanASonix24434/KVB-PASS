@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MessageCircle, Send, User, Shield, Minimize2, Maximize2 } from 'lucide-react';
+import { X, MessageCircle, Send, User, Shield, Minimize2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LiveChatWidgetProps {
@@ -20,7 +20,6 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ onClose }) => {
   const [newMessage, setNewMessage] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatKey = `kvpass_live_chat_${user?.id}`;
 
@@ -28,7 +27,7 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ onClose }) => {
   useEffect(() => {
     const stored = localStorage.getItem(chatKey);
     if (stored) {
-      const loadedMessages = JSON.parse(stored).map((msg: any) => ({
+      const loadedMessages = JSON.parse(stored).map((msg: ChatMessage) => ({
         ...msg,
         timestamp: new Date(msg.timestamp)
       }));
@@ -57,7 +56,7 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ onClose }) => {
     const checkForNewMessages = () => {
       const stored = localStorage.getItem(chatKey);
       if (stored) {
-        const storedMessages = JSON.parse(stored).map((msg: any) => ({
+        const storedMessages = JSON.parse(stored).map((msg: ChatMessage) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }));
@@ -134,8 +133,8 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-80 h-96 flex flex-col border border-gray-200">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+      <div className="bg-white rounded-2xl shadow-xl w-[calc(100vw-2rem)] max-w-[320px] h-[85vh] max-h-[28rem] sm:w-80 sm:h-96 flex flex-col border border-gray-200">
         {/* Header */}
         <div className="bg-blue-600 text-white p-4 rounded-t-2xl">
           <div className="flex items-center justify-between">
@@ -146,10 +145,8 @@ const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ onClose }) => {
               <div>
                 <h3 className="font-medium">Live Chat Admin</h3>
                 <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                  <span className="text-xs text-blue-100">
-                    {isOnline ? 'Online' : 'Offline'}
-                  </span>
+                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                  <span className="text-xs text-blue-100">Online</span>
                 </div>
               </div>
             </div>

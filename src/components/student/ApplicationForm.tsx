@@ -20,7 +20,7 @@ interface ApplicationFormProps {
 
 const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
   const { user, updateStudentId } = useAuth();
-  const { submitApplication } = useApplications();
+  const { submitApplication, uploadSupportingDocuments } = useApplications();
   const [showIncompleteProfileModal, setShowIncompleteProfileModal] = useState(false);
   
   useEffect(() => {
@@ -52,6 +52,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
     dormitoryRoom: user?.dormitoryRoom || '',
   });
 
+  const [supportingDocumentFiles, setSupportingDocumentFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({
     noMatrik: '',
@@ -153,16 +154,20 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
       studentIc: user?.icNumber || '',
       studentClass: user?.class || '',
       status: 'pending' as const,
-      applicationId: '', // Will be generated in context
+      applicationId: '',
       routedTo: routeTo,
       routingReason: routingReason,
       ...formData,
+      supportingDocuments: [] as string[],
     };
-    
+
     try {
       const createdApplication = await submitApplication(applicationData);
-      
-      // Save No. Matrik to user table if student entered it
+
+      if (supportingDocumentFiles.length > 0) {
+        await uploadSupportingDocuments(createdApplication.id, supportingDocumentFiles);
+      }
+
       if (user?.role === 'student' && user?.studentId) {
         try {
           await updateStudentId(user?.studentId);
@@ -196,15 +201,18 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
     const fileNames = files.map(file => file.name);
     setFormData(prev => ({
       ...prev,
-      supportingDocuments: [...prev.supportingDocuments, ...fileNames]
+      supportingDocuments: [...prev.supportingDocuments, ...fileNames],
     }));
+    setSupportingDocumentFiles(prev => [...prev, ...files]);
+    e.target.value = '';
   };
 
   const removeDocument = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      supportingDocuments: prev.supportingDocuments.filter((_, i) => i !== index)
+      supportingDocuments: prev.supportingDocuments.filter((_, i) => i !== index),
     }));
+    setSupportingDocumentFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const reasonOptions = [
@@ -221,7 +229,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
   const profileIncomplete = user && user.role === 'student' && !isProfileComplete(user);
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-0 sm:px-2">
       {profileIncomplete && (
         <AlertModal
           isOpen={showIncompleteProfileModal}
@@ -236,24 +244,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
         />
       )}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center space-x-4">
+        <div className="p-4 sm:p-6 border-b border-gray-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:space-x-4">
             <button
               onClick={onBack}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Borang Permohonan Kebenaran Keluar</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Borang Permohonan Kebenaran Keluar</h1>
               <p className="text-sm text-gray-600">Sila isi maklumat dengan lengkap dan tepat</p>
             </div>
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6 sm:space-y-8">
           {/* Student Information */}
           <div className="bg-gray-50 rounded-xl p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Maklumat Pelajar</h2>

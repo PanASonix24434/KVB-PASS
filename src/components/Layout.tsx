@@ -368,9 +368,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Content */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
         {/* Top Header */}
-        <header className="bg-theme-primary shadow-sm border-b border-theme-primary h-16">
-          <div className="flex items-center justify-between h-full px-4">
-            <div className="flex items-center space-x-4">
+        <header className="bg-theme-primary shadow-sm border-b border-theme-primary min-h-14 sm:h-16">
+          <div className="flex flex-wrap items-center justify-between gap-2 h-full px-3 sm:px-4 py-2">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-md text-theme-secondary hover:text-theme-primary hover:bg-theme-tertiary"
@@ -399,7 +399,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     )}
                   </button>
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                    <div className="absolute left-2 right-2 sm:left-auto sm:right-0 sm:w-80 w-[calc(100vw-1rem)] mt-2 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                       <div className="p-3 border-b border-gray-100 bg-gray-50 rounded-t-lg">
                         <h3 className="font-semibold text-gray-900">Pengumuman</h3>
                       </div>
@@ -429,11 +429,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {/* Dark Mode Toggle */}
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4 min-w-0">
               <DarkModeToggle />
-              
-              {/* Chat Notification Bell (Admin Only) */}
+
               {user?.role === 'admin' && (
                 <div className="relative">
                   <button 
@@ -441,7 +439,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     className="p-2 text-theme-secondary hover:text-theme-primary relative"
                     title="Live Chat dari Pengguna"
                   >
-                    <MessageCircle className="w-6 h-6" />
+                    <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                     {liveChatNotifications > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {liveChatNotifications}
@@ -450,25 +448,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </button>
                 </div>
               )}
-              
-              <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
+
+              <div className="hidden md:flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full shrink-0">
                 <Users className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-600">Active Users: {getActiveUsersCount()}</span>
               </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-theme-primary">{user?.name}</p>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
+
+              <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                <div className="text-right min-w-0 hidden sm:block">
+                  <p className="text-sm font-medium text-theme-primary truncate max-w-[120px] sm:max-w-[180px]" title={user?.name}>{user?.name}</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user?.role || '')}`}>
                     <span>{getRoleDisplay(user?.role || '')}</span>
                   </span>
                 </div>
                 <button
                   onClick={logout}
-                  className="flex items-center space-x-1 text-red-600 hover:text-red-700 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                  className="flex items-center space-x-1 text-red-600 hover:text-red-700 px-2 py-1.5 rounded-md hover:bg-red-50 transition-colors shrink-0"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span className="text-sm">Logout</span>
+                  <span className="text-sm hidden sm:inline">Logout</span>
                 </button>
               </div>
             </div>

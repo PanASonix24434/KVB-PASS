@@ -17,7 +17,7 @@ const LandingPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative mobile-bg-scroll"
       style={{
         backgroundImage: 'url(/Background.jpeg)',
         backgroundSize: 'cover',
@@ -26,33 +26,29 @@ const LandingPage: React.FC = () => {
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* Overlay for better readability */}
-      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-40" aria-hidden="true" />
       
       <div className="max-w-4xl w-full relative z-10">
-        {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <img 
             src="/logo_kv copy.png" 
             alt="Kolej Vokasional Besut" 
-            className="w-64 h-40 mx-auto mb-6 object-contain"
+            className="w-48 h-32 sm:w-64 sm:h-40 mx-auto mb-4 sm:mb-6 object-contain"
           />
-          <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-lg">KVB-PASS</h1>
-          <p className="text-xl text-white drop-shadow-md">Sistem Permohonan Pulang Awal</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3 drop-shadow-lg">KVB-PASS</h1>
+          <p className="text-lg sm:text-xl text-white drop-shadow-md">Sistem Permohonan Pulang Awal</p>
         </div>
 
-        {/* Main Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Buat Permohonan Button */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <button
             onClick={() => setShowApplication(true)}
-            className="group bg-white rounded-2xl shadow-2xl p-8 hover:shadow-3xl transition-all duration-300 hover:scale-105 transform"
+            className="group bg-white rounded-2xl shadow-2xl p-6 sm:p-8 hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.99] transform"
           >
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <FileText className="w-10 h-10 text-blue-600" />
+            <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Buat Permohonan</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Buat Permohonan</h2>
               <p className="text-gray-600 text-sm leading-relaxed">
                 Untuk pelajar kali pertama sahaja. Isi maklumat lengkap untuk pendaftaran dan permohonan.
               </p>
@@ -84,10 +80,9 @@ const LandingPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Information Box */}
-        <div className="mt-8 bg-white bg-opacity-90 rounded-xl p-6 shadow-lg">
+        <div className="mt-6 sm:mt-8 bg-white bg-opacity-90 rounded-xl p-4 sm:p-6 shadow-lg">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Maklumat Penting</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Maklumat Penting</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
               <div className="text-left">
                 <p className="font-medium mb-2">📝 Buat Permohonan:</p>

@@ -2,10 +2,9 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApplications } from '../../contexts/ApplicationContext';
 import { useNavigation } from '../../contexts/NavigationContext';
-import { BarChart3, Users, FileText, Shield, Clock, CheckCircle, XCircle, TrendingUp, Megaphone, UserPlus, MessageCircle } from 'lucide-react';
+import { BarChart3, Users, FileText, Shield, Clock, CheckCircle, XCircle, TrendingUp, UserPlus } from 'lucide-react';
 import AnnouncementManager from '../shared/AnnouncementManager';
 import UserManagement from '../shared/UserManagement';
-import LiveChatWidget from '../shared/LiveChatWidget';
 
 const AdminDashboard: React.FC = () => {
   const { handleNavigation, navigationAction } = useNavigation() || {};
@@ -65,17 +64,12 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
+    <div className="space-y-4 sm:space-y-6">
       <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 scroll-container">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900 animate-scroll-text">
-                Welcome to Kolej Vokasional Besut Permission System ( KVB-PASS )
-              </h1>
-            </div>
-          </div>
+        <div className="scroll-container">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 animate-scroll-text">
+            Welcome to Kolej Vokasional Besut Permission System ( KVB-PASS )
+          </h1>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ interface ApplicationContextType {
   announcements: Announcement[];
   stats: SystemStats;
   submitApplication: (application: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Application>;
+  uploadSupportingDocuments: (applicationDbId: string, files: File[]) => Promise<string[]>;
   approveApplication: (id: string, approverRole: 'hep' | 'warden', approverName: string, comments?: string) => Promise<void>;
   rejectApplication: (id: string, approverRole: 'hep' | 'warden', approverName: string, comments: string) => Promise<void>;
   logSecurityAction: (studentId: string, studentName: string, action: 'exit' | 'return', applicationId: string, officer: string) => Promise<void>;
@@ -239,6 +240,49 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Error submitting application:', error);
       throw error;
     }
+  };
+
+  /**
+   * Upload supporting document files to Supabase Storage and update application with public URLs.
+   * Bucket "supporting-documents" must exist and be public for read (or use signed URLs).
+   */
+  const uploadSupportingDocuments = async (applicationDbId: string, files: File[]): Promise<string[]> => {
+    if (files.length === 0) return [];
+    const bucket = 'supporting-documents';
+    const urls: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const safeName = `${i}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const path = `${applicationDbId}/${safeName}`;
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+      if (uploadError) {
+        console.error('Error uploading supporting document:', uploadError);
+        throw uploadError;
+      }
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+      urls.push(urlData.publicUrl);
+    }
+    const { data: updateData, error: updateError } = await supabase
+      .from('applications')
+      .update({
+        supporting_documents: urls,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', applicationDbId)
+      .select()
+      .single();
+    if (updateError) {
+      console.error('Error updating application with document URLs:', updateError);
+      throw updateError;
+    }
+    if (updateData) {
+      const updatedApp = mapDbApplicationToApplication(updateData as DatabaseApplication);
+      setApplications(prev => prev.map(app => app.id === applicationDbId ? updatedApp : app));
+    }
+    return urls;
   };
 
   const approveApplication = async (id: string, approverRole: 'hep' | 'warden', approverName: string, comments?: string) => {
@@ -486,6 +530,7 @@ export const ApplicationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       announcements,
       stats,
       submitApplication,
+      uploadSupportingDocuments,
       approveApplication,
       rejectApplication,
       logSecurityAction,

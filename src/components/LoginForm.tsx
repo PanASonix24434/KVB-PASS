@@ -67,7 +67,7 @@ export default function LoginForm({ onBack }: LoginFormProps) {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative mobile-bg-scroll"
       style={{
         backgroundImage: 'url(/Background.jpeg)',
         backgroundSize: 'cover',
@@ -76,30 +76,27 @@ export default function LoginForm({ onBack }: LoginFormProps) {
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* Overlay for better readability */}
-      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-40" aria-hidden="true" />
       
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative z-10">
-        {/* Back Button */}
+      <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md relative z-10">
         {onBack && (
           <button
             onClick={onBack}
-            className="mb-4 inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="mb-4 inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors min-h-[44px]"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 shrink-0" />
             <span className="text-sm">Kembali ke Halaman Utama</span>
           </button>
         )}
 
-        {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <img 
             src="/logo_kv copy.png" 
             alt="Kolej Vokasional Besut" 
-            className="w-64 h-40 mx-auto mb-4 object-contain"
+            className="w-48 h-32 sm:w-64 sm:h-40 mx-auto mb-3 sm:mb-4 object-contain"
           />
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">KVB-PASS</h1>
-          <p className="text-gray-600">Sistem Permohonan Pulang Awal</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">KVB-PASS</h1>
+          <p className="text-sm sm:text-base text-gray-600">Sistem Permohonan Pulang Awal</p>
         </div>
 
         {/* Login Form */}
@@ -182,11 +179,10 @@ export default function LoginForm({ onBack }: LoginFormProps) {
         </form>
       </div>
 
-      {/* Chat Admin Button for Login Support */}
-      <div className="fixed bottom-6 right-6">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6">
         <button
           onClick={() => setShowChat(true)}
-          className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
           title="Chat dengan Admin - Bantuan Log Masuk"
         >
           <MessageCircle className="w-6 h-6" />
