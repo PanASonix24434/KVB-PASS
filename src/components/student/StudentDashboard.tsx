@@ -27,6 +27,7 @@ const StudentDashboard: React.FC = () => {
     return false;
   });
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
+  const [preSelectedRouteTo, setPreSelectedRouteTo] = useState<'hep' | 'warden' | null>(null);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: 'success' | 'error' | 'warning' | 'info';
@@ -49,6 +50,7 @@ const StudentDashboard: React.FC = () => {
     if (navigationAction === 'apply') {
       setShowForm(true);
       setSelectedApplication(null);
+      setPreSelectedRouteTo(null);
     } else if (navigationAction === 'my-applications') {
       setShowForm(false);
       setSelectedApplication(null);
@@ -93,10 +95,8 @@ const StudentDashboard: React.FC = () => {
           });
         }
       }
-    } else if (navigationAction === 'dashboard') {
-      setShowForm(false);
-      setSelectedApplication(null);
     }
+    /* Do not reset showForm when navigationAction === 'dashboard', so "Buat Permohonan Baru" stays open. */
   }, [navigationAction, applications, user?.studentId]);
 
   // Scroll to top when opening Digital Pass
@@ -201,7 +201,15 @@ const StudentDashboard: React.FC = () => {
   }
 
   if (showForm) {
-    return <ApplicationForm onBack={() => setShowForm(false)} />;
+    return (
+      <ApplicationForm
+        onBack={() => {
+          setShowForm(false);
+          setPreSelectedRouteTo(null);
+        }}
+        forceRouteTo={preSelectedRouteTo ?? undefined}
+      />
+    );
   }
 
   return (
@@ -232,7 +240,11 @@ const StudentDashboard: React.FC = () => {
           <div className="p-4 sm:p-6 space-y-4">
             <div className="mb-4">
               <button
-                onClick={() => setShowForm(true)}
+                type="button"
+                onClick={() => {
+                  setPreSelectedRouteTo(null);
+                  setShowForm(true);
+                }}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Plus className="w-5 h-5" />
@@ -426,7 +438,14 @@ const StudentDashboard: React.FC = () => {
                           <span className="text-xs text-gray-500">{warden.phone}</span>
                         </div>
                       </div>
-                      <button className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 transition-colors flex items-center space-x-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreSelectedRouteTo('warden');
+                          setShowForm(true);
+                        }}
+                        className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 transition-colors flex items-center space-x-1"
+                      >
                         <Send className="w-3 h-3" />
                         <span>Hantar</span>
                       </button>

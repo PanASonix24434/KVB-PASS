@@ -16,9 +16,11 @@ const isProfileComplete = (user: { profile?: { fullName?: string; parentName?: s
 
 interface ApplicationFormProps {
   onBack: () => void;
+  /** When set, application is routed to this role instead of time-based logic (e.g. when student chose warden from dashboard). */
+  forceRouteTo?: 'hep' | 'warden';
 }
 
-const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
+const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack, forceRouteTo }) => {
   const { user, updateStudentId } = useAuth();
   const { submitApplication, uploadSupportingDocuments } = useApplications();
   const [showIncompleteProfileModal, setShowIncompleteProfileModal] = useState(false);
@@ -116,36 +118,41 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
     const currentMinutes = now.getMinutes();
     const currentTime = currentHour * 60 + currentMinutes; // Convert to minutes for easier comparison
     
-    let routeTo: 'hep' | 'warden' = 'hep'; // Default routing
+    // Use forced routing when opened from dashboard "Hantar" warden choice; otherwise use time-based routing
+    let routeTo: 'hep' | 'warden' = 'hep';
     let routingReason = '';
     
-    // Routing logic based on rules
-    if (dayOfWeek >= 0 && dayOfWeek <= 3) {
-      // Sunday to Wednesday (🟢)
-      if (currentTime >= 17 * 60) { // After 5:00 PM
-        routeTo = user?.profile?.residenceStatus === 'Pelajar Asrama' ? 'warden' : 'hep';
-        routingReason = user?.profile?.residenceStatus === 'Pelajar Asrama' 
-          ? 'Pelajar asrama selepas 5:00 petang → Warden'
-          : 'Pelajar harian selepas 5:00 petang → KHP';
-      } else {
-        routeTo = 'hep';
-        routingReason = 'Ahad-Rabu sebelum 5:00 petang → KHP';
-      }
-    } else if (dayOfWeek === 4) {
-      // Thursday (🟡 SPECIAL DAY)
-      if (currentTime < 13 * 60) { // Before 1:00 PM
-        routeTo = user?.profile?.residenceStatus === 'Pelajar Asrama' ? 'warden' : 'hep';
-        routingReason = user?.profile?.residenceStatus === 'Pelajar Asrama'
-          ? 'Khamis sebelum 1:00 petang - Pelajar asrama → Warden'
-          : 'Khamis sebelum 1:00 petang - Pelajar harian → KHP';
-      } else {
+    if (forceRouteTo) {
+      routeTo = forceRouteTo;
+      routingReason = forceRouteTo === 'warden'
+        ? 'Permohonan dihantar kepada Warden melalui pilihan di dashboard'
+        : 'Permohonan dihantar kepada KHP melalui pilihan di dashboard';
+    } else {
+      // Time-based routing
+      if (dayOfWeek >= 0 && dayOfWeek <= 3) {
+        if (currentTime >= 17 * 60) {
+          routeTo = user?.profile?.residenceStatus === 'Pelajar Asrama' ? 'warden' : 'hep';
+          routingReason = user?.profile?.residenceStatus === 'Pelajar Asrama' 
+            ? 'Pelajar asrama selepas 5:00 petang → Warden'
+            : 'Pelajar harian selepas 5:00 petang → KHP';
+        } else {
+          routeTo = 'hep';
+          routingReason = 'Ahad-Rabu sebelum 5:00 petang → KHP';
+        }
+      } else if (dayOfWeek === 4) {
+        if (currentTime < 13 * 60) {
+          routeTo = user?.profile?.residenceStatus === 'Pelajar Asrama' ? 'warden' : 'hep';
+          routingReason = user?.profile?.residenceStatus === 'Pelajar Asrama'
+            ? 'Khamis sebelum 1:00 petang - Pelajar asrama → Warden'
+            : 'Khamis sebelum 1:00 petang - Pelajar harian → KHP';
+        } else {
+          routeTo = 'warden';
+          routingReason = 'Khamis selepas 1:00 petang → Warden sahaja';
+        }
+      } else if (dayOfWeek === 5 || dayOfWeek === 6) {
         routeTo = 'warden';
-        routingReason = 'Khamis selepas 1:00 petang → Warden sahaja';
+        routingReason = 'Jumaat & Sabtu → Warden sahaja';
       }
-    } else if (dayOfWeek === 5 || dayOfWeek === 6) {
-      // Friday & Saturday (🔵)
-      routeTo = 'warden';
-      routingReason = 'Jumaat & Sabtu → Warden sahaja';
     }
 
     const applicationData = {
@@ -164,25 +171,34 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
     try {
       const createdApplication = await submitApplication(applicationData);
 
+      let documentUploadFailed = false;
       if (supportingDocumentFiles.length > 0) {
-        await uploadSupportingDocuments(createdApplication.id, supportingDocumentFiles);
+        try {
+          await uploadSupportingDocuments(createdApplication.id, supportingDocumentFiles);
+        } catch (uploadErr) {
+          documentUploadFailed = true;
+        }
       }
 
       if (user?.role === 'student' && user?.studentId) {
         try {
-          await updateStudentId(user?.studentId);
-        } catch (err) {
-          console.warn('Could not update student_id in user table:', err);
+          await updateStudentId(user.studentId);
+        } catch {
+          /* ignore update student_id failure */
         }
       }
-      
+
       setIsSubmitting(false);
-      
+
+      const successMessage = documentUploadFailed
+        ? `ID Permohonan: ${createdApplication.applicationId}\n\nPermohonan dihantar kepada: ${routeTo === 'hep' ? 'Ketua HEP' : 'Warden Asrama'}\n\nSebab: ${routingReason}\n\nSila simpan ID ini untuk rujukan.\n\nNota: Muat naik dokumen sokongan tidak berjaya. Permohonan anda telah disimpan. Sila hubungi pentadbir jika anda perlu memuat naik dokumen.`
+        : `ID Permohonan: ${createdApplication.applicationId}\n\nPermohonan dihantar kepada: ${routeTo === 'hep' ? 'Ketua HEP' : 'Warden Asrama'}\n\nSebab: ${routingReason}\n\nSila simpan ID ini untuk rujukan.`;
+
       setModalState({
         isOpen: true,
         type: 'success',
         title: 'Permohonan Berjaya!',
-        message: `ID Permohonan: ${createdApplication.applicationId}\n\nPermohonan dihantar kepada: ${routeTo === 'hep' ? 'Ketua HEP' : 'Warden Asrama'}\n\nSebab: ${routingReason}\n\nSila simpan ID ini untuk rujukan.`
+        message: successMessage
       });
     } catch (error) {
       setIsSubmitting(false);
@@ -192,7 +208,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onBack }) => {
         title: 'Ralat',
         message: 'Ralat semasa menghantar permohonan. Sila cuba lagi.'
       });
-      console.error('Error submitting application:', error);
     }
   };
 

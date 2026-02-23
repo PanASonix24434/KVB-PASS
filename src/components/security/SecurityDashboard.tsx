@@ -4,6 +4,7 @@ import { useApplications } from '../../contexts/ApplicationContext';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { Shield, Search, CheckCircle, XCircle, Clock, LogOut, LogIn, AlertTriangle, User, QrCode, Camera, MessageCircle } from 'lucide-react';
 import LiveChatWidget from '../shared/LiveChatWidget';
+import { supabase } from '../../lib/supabase';
 
 const SecurityDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ const SecurityDashboard: React.FC = () => {
   const [searchIc, setSearchIc] = useState('');
   const [searchApplicationId, setSearchApplicationId] = useState('');
   const [searchResult, setSearchResult] = useState<any>(null);
+  const [studentPhotoMap, setStudentPhotoMap] = useState<Record<string, string>>({});
   const [searchMode, setSearchMode] = useState<'ic' | 'applicationId'>('ic');
   const [isSearching, setIsSearching] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
@@ -73,6 +75,24 @@ const SecurityDashboard: React.FC = () => {
       lastReturnLog,
       searchMode,
     });
+
+    const uniqueIcs = [...new Set(approvedApplications.map((a: { studentIc: string }) => a.studentIc))];
+    if (uniqueIcs.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('ic_number, profile')
+        .in('ic_number', uniqueIcs);
+      const map: Record<string, string> = {};
+      if (usersData && Array.isArray(usersData)) {
+        usersData.forEach((row: { ic_number: string; profile?: { profilePhoto?: string } | null }) => {
+          const photo = row.profile?.profilePhoto;
+          if (photo) map[row.ic_number] = photo;
+        });
+      }
+      setStudentPhotoMap(map);
+    } else {
+      setStudentPhotoMap({});
+    }
 
     setIsSearching(false);
   };
@@ -330,33 +350,22 @@ const SecurityDashboard: React.FC = () => {
                         {/* Student Verification Card */}
                         <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-6">
                           <div className="flex items-start space-x-6">
-                            {/* Student Photo Placeholder */}
+                            {/* Student Photo - from Supabase profile */}
                             <div className="flex-shrink-0">
                               <div className="w-24 h-32 bg-gray-200 rounded-lg border-2 border-gray-300 flex items-center justify-center overflow-hidden">
-                                {(() => {
-                                  // Get student profile photo from stored users
-                                  const storedUsers = localStorage.getItem('kvpass_all_users');
-                                  if (storedUsers) {
-                                    const users = JSON.parse(storedUsers);
-                                    const student = users.find((u: any) => u.icNumber === app.studentIc);
-                                    if (student?.profile?.profilePhoto) {
-                                      return (
-                                        <img 
-                                          src={student.profile.profilePhoto} 
-                                          alt="Gambar Pasport Pelajar" 
-                                          className="w-full h-full object-cover"
-                                        />
-                                      );
-                                    }
-                                  }
-                                  return (
-                                    <div className="text-center">
-                                      <User className="w-8 h-8 text-gray-400 mx-auto mb-1" />
-                                      <p className="text-xs text-gray-500">Gambar</p>
-                                      <p className="text-xs text-gray-500">Pasport</p>
-                                    </div>
-                                  );
-                                })()}
+                                {studentPhotoMap[app.studentIc] ? (
+                                  <img
+                                    src={studentPhotoMap[app.studentIc]}
+                                    alt="Gambar Pasport Pelajar"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="text-center">
+                                    <User className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+                                    <p className="text-xs text-gray-500">Gambar</p>
+                                    <p className="text-xs text-gray-500">Pasport</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             

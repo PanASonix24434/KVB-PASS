@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApplications } from '../../contexts/ApplicationContext';
-import { ArrowLeft, Shield, Calendar, Clock, MapPin, CheckCircle, QrCode, Download, Share2, User } from 'lucide-react';
+import { ArrowLeft, Shield, Calendar, Clock, MapPin, CheckCircle, Download, Share2, User } from 'lucide-react';
 import AlertModal from '../shared/AlertModal';
 
 interface DigitalPassProps {
@@ -93,8 +93,8 @@ Kolej Vokasional Besut
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
-        console.log('Error sharing:', err);
+      } catch {
+        /* share cancelled or failed */
       }
     } else {
       // Fallback - copy to clipboard
@@ -123,9 +123,9 @@ Kolej Vokasional Besut
       </div>
 
       {/* Digital Pass */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden print:shadow-none print:border-2 print:border-gray-300">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden print:shadow-none print:border-2 print:border-gray-300 print:rounded-none digital-pass-print">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 text-white">
+        <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 text-white print:p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="bg-white bg-opacity-20 p-2 rounded-lg">
@@ -150,10 +150,10 @@ Kolej Vokasional Besut
         </div>
 
         {/* Pass Content */}
-        <div className="p-8 space-y-6">
+        <div className="p-8 space-y-6 print:p-4 print:space-y-3">
           {/* Student Photo Section */}
-          <div className="text-center border-b border-gray-100 pb-6">
-            <div className="w-24 h-32 bg-gray-100 rounded-lg border-2 border-gray-300 mx-auto mb-4 overflow-hidden">
+          <div className="text-center border-b border-gray-100 pb-6 print:pb-3">
+            <div className="w-24 h-32 bg-gray-100 rounded-lg border-2 border-gray-300 mx-auto mb-4 overflow-hidden print:w-16 print:h-20 print:mb-2">
               {(() => {
                 // Get current user's profile photo
                 const storedUser = localStorage.getItem('kvpass_user');
@@ -184,8 +184,8 @@ Kolej Vokasional Besut
           </div>
 
           {/* Application ID */}
-          <div className="text-center border-b border-gray-100 pb-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="text-center border-b border-gray-100 pb-4 print:pb-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 print:p-2 print:mb-2">
               <p className="text-sm font-medium text-blue-800 mb-1">ID Permohonan</p>
               <p className="text-2xl font-bold text-blue-900 font-mono">{application.applicationId}</p>
               <p className="text-xs text-blue-600 mt-1">Sila simpan ID ini untuk rujukan</p>
@@ -193,8 +193,8 @@ Kolej Vokasional Besut
           </div>
 
           {/* Student Info */}
-          <div className="text-center border-b border-gray-100 pb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{application.studentName}</h2>
+          <div className="text-center border-b border-gray-100 pb-6 print:pb-3">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 print:text-xl print:mb-1">{application.studentName}</h2>
             <div className="space-y-1 text-gray-600">
               <p><span className="font-medium">No. Pelajar:</span> {application.studentId}</p>
               <p><span className="font-medium">No. K/P:</span> {application.studentIc}</p>
@@ -206,7 +206,7 @@ Kolej Vokasional Besut
           </div>
 
           {/* Pass Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:gap-3 print:grid-cols-2">
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -271,25 +271,8 @@ Kolej Vokasional Besut
             </div>
           </div>
 
-          {/* QR Code Placeholder */}
-          <div className="text-center py-6 border-t border-gray-100">
-            <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl mb-4 border-2 border-blue-300">
-              <div className="text-center">
-                <QrCode className="w-16 h-16 text-blue-600 mx-auto mb-2" />
-                <div className="text-xs font-mono text-blue-800 leading-tight">
-                  {application.digitalPass?.split('-').map((part, index) => (
-                    <div key={index}>{part}</div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-700 mb-1">Kod Digital untuk Pengesahan</p>
-            <p className="text-xs text-gray-500 font-mono bg-gray-100 px-3 py-1 rounded">{application.digitalPass}</p>
-            <p className="text-xs text-gray-400 mt-2">Tunjukkan kod ini kepada pengawal keselamatan</p>
-          </div>
-
           {/* Approval Info */}
-          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200 print:p-3">
             <div className="flex items-center space-x-2 mb-2">
               <CheckCircle className="w-5 h-5 text-green-600" />
               <span className="font-medium text-green-800">Diluluskan oleh</span>
@@ -308,7 +291,7 @@ Kolej Vokasional Besut
           </div>
 
           {/* Footer */}
-          <div className="text-center text-xs text-gray-500 border-t border-gray-100 pt-4">
+          <div className="text-center text-xs text-gray-500 border-t border-gray-100 pt-4 print:pt-2">
             <p>Surat kebenaran ini sah dan dikeluarkan secara digital oleh Sistem KVB-PASS</p>
             <p>Dikeluarkan pada: {new Date().toLocaleString('ms-MY')}</p>
           </div>
