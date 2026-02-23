@@ -49,25 +49,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-        <h2 style="color: #1e40af;">KVB-PASS - Reset Kata Laluan</h2>
-        <p>Assalamualaikum ${userName || 'Pengguna'},</p>
-        <p>Anda telah meminta untuk menetapkan semula kata laluan anda.</p>
-        <p>Sila klik pautan di bawah untuk tetapkan kata laluan baharu:</p>
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; padding: 32px 24px; text-align: center;">
+        <h2 style="color: #1e40af; font-size: 1.25rem; font-weight: bold; margin: 0 0 24px 0;">KVB-PASS - Reset Kata Laluan</h2>
+        <p style="color: #374151; font-size: 16px; line-height: 1.5; margin: 0 0 16px 0;">Assalamualaikum ${userName || 'Pengguna'},</p>
+        <p style="color: #374151; font-size: 16px; line-height: 1.5; margin: 0 0 16px 0;">Anda telah meminta untuk menetapkan semula kata laluan anda.</p>
+        <p style="color: #374151; font-size: 16px; line-height: 1.5; margin: 0 0 24px 0;">Sila klik pautan di bawah untuk tetapkan kata laluan baharu:</p>
         <p style="margin: 24px 0;">
-          <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">
+          <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-size: 16px; font-weight: 500;">
             Tetapkan Kata Laluan Baharu
           </a>
         </p>
-        <p style="color: #6b7280; font-size: 14px;">
+        <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 24px 0 0 0;">
           Pautan ini akan tamat dalam 1 jam. Jika anda tidak meminta reset, sila abaikan e-mel ini.
         </p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-        <p style="color: #9ca3af; font-size: 12px;">KVB-PASS - Sistem Permohonan Pulang Awal</p>
+        <p style="color: #9ca3af; font-size: 12px; margin: 32px 0 0 0;">KVB-PASS - Sistem Permohonan Pulang Awal</p>
       </div>
     `;
 
-    // Use Resend REST API directly (no SDK - more reliable in Edge Functions)
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -77,7 +75,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: 'KVB-PASS: Tetapkan Kata Laluan Baharu',
+        subject: 'KVB-PASS - Reset Kata Laluan',
         html,
       }),
     });
