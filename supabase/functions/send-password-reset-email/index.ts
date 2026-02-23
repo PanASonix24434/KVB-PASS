@@ -91,11 +91,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!res.ok) {
-      console.error('Resend API error:', res.status, resData);
+      const resendMessage = (resData as { message?: string })?.message || `HTTP ${res.status}`;
       return new Response(
         JSON.stringify({
           error: 'Failed to send email',
-          code: (resData as { message?: string })?.message || `HTTP ${res.status}`,
+          message: resendMessage,
         }),
         { status: 500, headers: jsonHeaders }
       );

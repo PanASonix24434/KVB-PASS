@@ -10,7 +10,6 @@ interface ForgotPasswordModalProps {
 const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) => {
   const [step, setStep] = useState<'request' | 'verify' | 'reset' | 'email_sent' | 'success'>('request');
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
-  const [resetLink, setResetLink] = useState<string>('');
   const [formData, setFormData] = useState({
     userId: '',
     email: '',
@@ -124,7 +123,6 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
       }
 
       const resetUrl = `${window.location.origin}/reset-password?token=${resetToken}`;
-      setResetLink(resetUrl);
 
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-password-reset-email', {
         body: {
@@ -135,10 +133,28 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose }) =>
       });
 
       if (emailError) {
-        console.error('Edge Function error:', emailError);
-        console.error('Response context:', (emailError as { context?: unknown })?.context);
-      } else if (emailData?.error) {
-        console.error('Edge Function returned error:', emailData);
+        const msg = (emailError as { message?: string })?.message || '';
+        const fromBody = typeof emailData === 'object' && emailData !== null && 'message' in emailData
+          ? String((emailData as { message?: string }).message)
+          : '';
+        const hint = msg || fromBody || '';
+        setError(
+          hint.toLowerCase().includes('domain') || hint.toLowerCase().includes('verified') || hint.toLowerCase().includes('send')
+            ? 'Perkhidmatan e-mel tidak dapat menghantar ke alamat ini. Sila hubungi pentadbir atau gunakan alamat e-mel yang didaftarkan untuk reset kata laluan.'
+            : 'E-mel reset kata laluan gagal dihantar. Sila cuba lagi atau hubungi pentadbir.'
+        );
+        setIsLoading(false);
+        return;
+      }
+      if (emailData && typeof emailData === 'object' && 'error' in emailData && (emailData as { error?: string }).error) {
+        const msg = (emailData as { message?: string }).message || (emailData as { error?: string }).error || '';
+        setError(
+          msg.toLowerCase().includes('domain') || msg.toLowerCase().includes('verified')
+            ? 'Perkhidmatan e-mel tidak dapat menghantar ke alamat ini. Sila hubungi pentadbir.'
+            : 'E-mel reset kata laluan gagal dihantar. Sila cuba lagi.'
+        );
+        setIsLoading(false);
+        return;
       }
 
       setVerifiedUserId(data.id);
